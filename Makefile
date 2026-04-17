@@ -16,11 +16,6 @@ $(GO_MK):
 
 -include $(GO_MK)
 
-# go.mk's check depends on build; library modules still compile all packages.
-.PHONY: build
-build:
-	go build ./...
-
 .PHONY: update-go-mk
 update-go-mk:
 	@mkdir -p "$(dir $(GO_MK))"
@@ -34,5 +29,6 @@ update-go-mk:
 
 .DEFAULT_GOAL := check
 
-# Library module. The build target runs go build ./...; other targets inherited
-# from go.mk (check, fmt, lint, test, vet, govulncheck) operate on all packages.
+# Library module. No local build, deploy, or clean targets.
+# The 'build' target comes from go.mk (runs 'go build ./...').
+# Other targets (check, fmt, lint, test, vet, govulncheck) also come from go.mk.
