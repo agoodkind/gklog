@@ -24,6 +24,9 @@ type Config struct {
 	EmailCooldown      string
 	TextLabel          string
 	EmailSubjectPrefix string
+	// Rotation controls log rotation for TextLogFile and JSONLogFile.
+	// Zero values use defaults (5MB, keep forever, compressed).
+	Rotation RotationConfig
 }
 
 // New creates a unified logger supporting text files, JSON files,
@@ -39,14 +42,14 @@ func New(lc Config) (*slog.Logger, error) {
 
 	// Add text file handler if configured
 	if strings.TrimSpace(lc.TextLogFile) != "" {
-		textLJ := NewLumberjackWriter(lc.TextLogFile)
+		textLJ := NewLumberjackWriterWithConfig(lc.TextLogFile, lc.Rotation)
 		txtH := NewTextHandler(textLJ, lc.TextLabel)
 		children = append(children, txtH)
 	}
 
 	// Add JSON file handler if configured
 	if strings.TrimSpace(lc.JSONLogFile) != "" {
-		jsonLJ := NewLumberjackWriter(lc.JSONLogFile)
+		jsonLJ := NewLumberjackWriterWithConfig(lc.JSONLogFile, lc.Rotation)
 		jsonH := slog.NewJSONHandler(jsonLJ, jsonOpts)
 		children = append(children, jsonH)
 	}

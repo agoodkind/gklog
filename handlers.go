@@ -98,14 +98,43 @@ func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 func (h *TextHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h *TextHandler) WithGroup(string) slog.Handler      { return h }
 
-// NewLumberjackWriter returns a rotating log writer for the given path.
+// RotationConfig controls log rotation behavior. Zero values fall back to
+// sensible defaults (5MB, unlimited backups, unlimited age, compressed).
+type RotationConfig struct {
+	MaxSizeMB  int   `toml:"max_size_mb"`  // rotate when file exceeds this size; default 5
+	MaxBackups int   `toml:"max_backups"`  // number of rotated files to retain; 0 = unlimited
+	MaxAgeDays int   `toml:"max_age_days"` // days to retain rotated files; 0 = unlimited
+	Compress   *bool `toml:"compress"`     // nil = compress (default true); explicit false disables
+	LocalTime  *bool `toml:"local_time"`   // nil = local time (default true); explicit false uses UTC
+}
+
+// NewLumberjackWriter returns a rotating log writer for the given path using
+// default rotation settings (5MB, keep forever, compressed).
 func NewLumberjackWriter(path string) *lumberjack.Logger {
+	return NewLumberjackWriterWithConfig(path, RotationConfig{})
+}
+
+// NewLumberjackWriterWithConfig returns a rotating log writer for the given
+// path with caller-supplied rotation settings. Zero values use defaults.
+func NewLumberjackWriterWithConfig(path string, rc RotationConfig) *lumberjack.Logger {
+	maxSize := rc.MaxSizeMB
+	if maxSize <= 0 {
+		maxSize = 5
+	}
+	compress := true
+	if rc.Compress != nil {
+		compress = *rc.Compress
+	}
+	localTime := true
+	if rc.LocalTime != nil {
+		localTime = *rc.LocalTime
+	}
 	return &lumberjack.Logger{
 		Filename:   path,
-		MaxSize:    100,
-		MaxBackups: 0,
-		MaxAge:     0,
-		Compress:   true,
-		LocalTime:  true,
+		MaxSize:    maxSize,
+		MaxBackups: rc.MaxBackups,
+		MaxAge:     rc.MaxAgeDays,
+		Compress:   compress,
+		LocalTime:  localTime,
 	}
 }
