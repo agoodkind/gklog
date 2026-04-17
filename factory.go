@@ -2,6 +2,8 @@ package gklog
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
@@ -27,22 +29,33 @@ type Config struct {
 	// Rotation controls log rotation for TextLogFile and JSONLogFile.
 	// Zero values use defaults (5MB, keep forever, compressed).
 	Rotation RotationConfig
+	// DisableStdout skips the JSON stdout handler (for programs where stdout is reserved).
+	DisableStdout bool
+	// JSONMinLevel is the minimum level for JSON stdout and JSONLogFile handlers.
+	// Empty or unknown values default to debug.
+	JSONMinLevel string
 }
 
 // New creates a unified logger supporting text files, JSON files,
 // JSON stdout (journald), and optional email handler. All log records
 // are annotated with build metadata from goodkind.io/gklog/version.
-func New(lc Config) (*slog.Logger, error) {
+// The returned io.Closer must be closed to release rotating log files; it may be a no-op.
+func New(lc Config) (*slog.Logger, io.Closer, error) {
+	jsonOpts := &slog.HandlerOptions{Level: parseJSONMinLevel(lc.JSONMinLevel)}
+
+	var closers []io.Closer
 	var children []slog.Handler
 
-	// Always add JSON handler to stdout for journald
-	jsonOpts := &slog.HandlerOptions{Level: slog.LevelDebug}
-	stdoutH := slog.NewJSONHandler(os.Stdout, jsonOpts)
-	children = append(children, stdoutH)
+	// JSON handler to stdout for journald (optional).
+	if !lc.DisableStdout {
+		stdoutH := slog.NewJSONHandler(os.Stdout, jsonOpts)
+		children = append(children, stdoutH)
+	}
 
 	// Add text file handler if configured
 	if strings.TrimSpace(lc.TextLogFile) != "" {
 		textLJ := NewLumberjackWriterWithConfig(lc.TextLogFile, lc.Rotation)
+		closers = append(closers, textLJ)
 		txtH := NewTextHandler(textLJ, lc.TextLabel)
 		children = append(children, txtH)
 	}
@@ -50,6 +63,7 @@ func New(lc Config) (*slog.Logger, error) {
 	// Add JSON file handler if configured
 	if strings.TrimSpace(lc.JSONLogFile) != "" {
 		jsonLJ := NewLumberjackWriterWithConfig(lc.JSONLogFile, lc.Rotation)
+		closers = append(closers, jsonLJ)
 		jsonH := slog.NewJSONHandler(jsonLJ, jsonOpts)
 		children = append(children, jsonH)
 	}
@@ -69,9 +83,43 @@ func New(lc Config) (*slog.Logger, error) {
 		children = append(children, emailH)
 	}
 
+	if len(children) == 0 {
+		return nil, nil, fmt.Errorf("gklog: no log outputs enabled (enable stdout or a log file)")
+	}
+
 	logger := slog.New(NewTeeHandler(children...)).
 		With("build", version.String())
-	return logger, nil
+	return logger, multiCloser(closers), nil
+}
+
+type multiCloser []io.Closer
+
+func (m multiCloser) Close() error {
+	var first error
+	for _, c := range m {
+		if c == nil {
+			continue
+		}
+		if err := c.Close(); err != nil && first == nil {
+			first = err
+		}
+	}
+	return first
+}
+
+func parseJSONMinLevel(s string) slog.Level {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "info":
+		return slog.LevelInfo
+	case "warn", "warning":
+		return slog.LevelWarn
+	case "error":
+		return slog.LevelError
+	case "debug", "":
+		return slog.LevelDebug
+	default:
+		return slog.LevelDebug
+	}
 }
 
 // senderFuncAdapter adapts EmailSenderFunc to the emaillog.Sender interface.
