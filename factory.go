@@ -55,16 +55,18 @@ func New(lc Config) (*slog.Logger, io.Closer, error) {
 	// Add text file handler if configured
 	if strings.TrimSpace(lc.TextLogFile) != "" {
 		textLJ := NewLumberjackWriterWithConfig(lc.TextLogFile, lc.Rotation)
-		closers = append(closers, textLJ)
-		txtH := NewTextHandler(textLJ, lc.TextLabel)
+		textWriter := NewLockedWriteCloser(lc.TextLogFile, textLJ)
+		closers = append(closers, textWriter)
+		txtH := NewTextHandler(textWriter, lc.TextLabel)
 		children = append(children, txtH)
 	}
 
 	// Add JSON file handler if configured
 	if strings.TrimSpace(lc.JSONLogFile) != "" {
 		jsonLJ := NewLumberjackWriterWithConfig(lc.JSONLogFile, lc.Rotation)
-		closers = append(closers, jsonLJ)
-		jsonH := slog.NewJSONHandler(jsonLJ, jsonOpts)
+		jsonWriter := NewLockedWriteCloser(lc.JSONLogFile, jsonLJ)
+		closers = append(closers, jsonWriter)
+		jsonH := slog.NewJSONHandler(jsonWriter, jsonOpts)
 		children = append(children, jsonH)
 	}
 

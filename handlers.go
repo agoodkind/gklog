@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path/filepath"
 	"strings"
 	"sync"
 
+	"github.com/gofrs/flock"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -137,4 +139,48 @@ func NewLumberjackWriterWithConfig(path string, rc RotationConfig) *lumberjack.L
 		Compress:   compress,
 		LocalTime:  localTime,
 	}
+}
+
+// NewLockedWriteCloser wraps a write closer with a sidecar file lock so
+// independent processes sharing the same log path serialize each Write call.
+// This is important for JSONL durability: overlapping daemon instances or a
+// restart during rotation should not be able to interleave partial records into
+// the same file.
+func NewLockedWriteCloser(path string, wc io.WriteCloser) io.WriteCloser {
+	if wc == nil {
+		return nil
+	}
+	lockPath := path + ".lock"
+	if dir := filepath.Dir(path); dir != "" && dir != "." {
+		lockPath = filepath.Join(dir, filepath.Base(path)+".lock")
+	}
+	return &lockedWriteCloser{
+		lock: flock.New(lockPath),
+		wc:   wc,
+	}
+}
+
+type lockedWriteCloser struct {
+	mu   sync.Mutex
+	lock *flock.Flock
+	wc   io.WriteCloser
+}
+
+func (w *lockedWriteCloser) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if err := w.lock.Lock(); err != nil {
+		return 0, err
+	}
+	defer func() { _ = w.lock.Unlock() }()
+	return w.wc.Write(p)
+}
+
+func (w *lockedWriteCloser) Close() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	if w.wc == nil {
+		return nil
+	}
+	return w.wc.Close()
 }
