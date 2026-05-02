@@ -1,142 +1,81 @@
+// Package gklog provides structured logging primitives layered on log/slog:
+// a fan-out tee handler, a human-friendly text handler, optional rotating
+// file output via lumberjack, an emaillog handler, and a context-scoped
+// logger helper.
+//
+// API shape: callers compose a list of slog.Handler instances via the
+// constructor functions in handlers.go (StdoutJSON, FileText, FileJSON,
+// EmailHandler) and pass them through Config to New. Adding a new sink
+// is a new constructor; New itself stays unchanged.
+//
+// Example:
+//
+//	handlers := []slog.Handler{gklog.StdoutJSON(slog.LevelDebug)}
+//	if path != "" {
+//	    handlers = append(handlers, gklog.FileJSON(path, slog.LevelDebug, gklog.RotationConfig{}))
+//	}
+//	log, closer := gklog.New(gklog.Config{
+//	    BuildVersion: buildVersion,
+//	    Handlers:     handlers,
+//	})
+//	defer closer.Close()
 package gklog
 
 import (
-	"context"
-	"fmt"
 	"io"
 	"log/slog"
-	"os"
-	"strings"
-	"time"
-
-	"goodkind.io/gklog/emaillog"
-	"goodkind.io/gklog/version"
 )
 
-// EmailSenderFunc is a function type for sending email notifications.
-type EmailSenderFunc func(ctx context.Context, to, subject, body string) error
-
-// Config holds all parameters for creating a logger.
+// Config is what callers compose for New: the handler list and a
+// build-version annotation that should accompany every record.
 type Config struct {
-	TextLogFile        string
-	JSONLogFile        string
-	EmailSend          EmailSenderFunc // nil = no email handler
-	EmailTo            string
-	EmailMinLevel      string
-	EmailCooldown      string
-	TextLabel          string
-	EmailSubjectPrefix string
-	// Rotation controls log rotation for TextLogFile and JSONLogFile.
-	// Zero values use defaults (5MB, keep forever, compressed).
-	Rotation RotationConfig
-	// DisableStdout skips the JSON stdout handler (for programs where stdout is reserved).
-	DisableStdout bool
-	// JSONMinLevel is the minimum level for JSON stdout and JSONLogFile handlers.
-	// Empty or unknown values default to debug.
-	JSONMinLevel string
+	// BuildVersion is appended as a "build" attribute to every record
+	// via slog.Logger.With. Caller chooses the format.
+	BuildVersion string
+
+	// Handlers is the ordered list of slog.Handler children that the
+	// returned logger fans out to via a TeeHandler. Empty Handlers
+	// returns a logger that drops every record (intended for tests).
+	Handlers []slog.Handler
 }
 
-// New creates a unified logger supporting text files, JSON files,
-// JSON stdout (journald), and optional email handler. All log records
-// are annotated with build metadata from goodkind.io/gklog/version.
-// The returned io.Closer must be closed to release rotating log files; it may be a no-op.
-func New(lc Config) (*slog.Logger, io.Closer, error) {
-	jsonOpts := &slog.HandlerOptions{Level: parseJSONMinLevel(lc.JSONMinLevel)}
-
-	var closers []io.Closer
-	var children []slog.Handler
-
-	// JSON handler to stdout for journald (optional).
-	if !lc.DisableStdout {
-		stdoutH := slog.NewJSONHandler(os.Stdout, jsonOpts)
-		children = append(children, stdoutH)
-	}
-
-	// Add text file handler if configured
-	if strings.TrimSpace(lc.TextLogFile) != "" {
-		textLJ := NewLumberjackWriterWithConfig(lc.TextLogFile, lc.Rotation)
-		textWriter := NewLockedWriteCloser(lc.TextLogFile, textLJ)
-		closers = append(closers, textWriter)
-		txtH := NewTextHandler(textWriter, lc.TextLabel)
-		children = append(children, txtH)
-	}
-
-	// Add JSON file handler if configured
-	if strings.TrimSpace(lc.JSONLogFile) != "" {
-		jsonLJ := NewLumberjackWriterWithConfig(lc.JSONLogFile, lc.Rotation)
-		jsonWriter := NewLockedWriteCloser(lc.JSONLogFile, jsonLJ)
-		closers = append(closers, jsonWriter)
-		jsonH := slog.NewJSONHandler(jsonWriter, jsonOpts)
-		children = append(children, jsonH)
-	}
-
-	// Add email handler if sender and recipient configured
-	if lc.EmailSend != nil && strings.TrimSpace(lc.EmailTo) != "" {
-		threshold := ParseEmailMinLevel(lc.EmailMinLevel)
-		cd := 5 * time.Minute // default
-		if lc.EmailCooldown != "" {
-			if parsed, err := time.ParseDuration(lc.EmailCooldown); err == nil {
-				cd = parsed
-			}
-		}
-
-		senderAdapter := &senderFuncAdapter{fn: lc.EmailSend}
-		emailH := emaillog.New(threshold, cd, senderAdapter, lc.EmailTo, lc.EmailSubjectPrefix)
-		children = append(children, emailH)
-	}
-
-	if len(children) == 0 {
-		return nil, nil, fmt.Errorf("gklog: no log outputs enabled (enable stdout or a log file)")
-	}
-
-	logger := slog.New(NewTeeHandler(children...)).
-		With("build", version.String())
-	return logger, multiCloser(closers), nil
+// New composes cfg.Handlers via TeeHandler and returns a logger plus
+// a Closer that releases any handlers implementing io.Closer (typically
+// those wrapping rotating file writers). The Closer never errors when
+// called multiple times; calling it on a logger built from non-Closer
+// handlers is a no-op.
+func New(cfg Config) (*slog.Logger, io.Closer) {
+	logger := slog.New(NewTeeHandler(cfg.Handlers...)).With("build", cfg.BuildVersion)
+	return logger, &handlerListCloser{handlers: cfg.Handlers}
 }
 
-type multiCloser []io.Closer
+type handlerListCloser struct {
+	handlers []slog.Handler
+	closed   bool
+}
 
-func (m multiCloser) Close() error {
+func (c *handlerListCloser) Close() error {
+	if c.closed {
+		return nil
+	}
+	c.closed = true
 	var first error
-	for _, c := range m {
-		if c == nil {
-			continue
-		}
-		if err := c.Close(); err != nil && first == nil {
-			first = err
+	for _, h := range c.handlers {
+		if cl, ok := h.(io.Closer); ok {
+			if err := cl.Close(); err != nil && first == nil {
+				first = err
+			}
 		}
 	}
 	return first
 }
 
-func parseJSONMinLevel(s string) slog.Level {
-	switch strings.ToLower(strings.TrimSpace(s)) {
-	case "info":
-		return slog.LevelInfo
-	case "warn", "warning":
-		return slog.LevelWarn
-	case "error":
-		return slog.LevelError
-	case "debug", "":
-		return slog.LevelDebug
-	default:
-		return slog.LevelDebug
-	}
-}
-
-// senderFuncAdapter adapts EmailSenderFunc to the emaillog.Sender interface.
-type senderFuncAdapter struct {
-	fn EmailSenderFunc
-}
-
-// Send implements emaillog.Sender interface.
-func (a *senderFuncAdapter) Send(ctx context.Context, to, subject, body string) error {
-	return a.fn(ctx, to, subject, body)
-}
-
-// ParseEmailMinLevel converts a string to slog.Level for email alerts.
-func ParseEmailMinLevel(s string) slog.Level {
-	switch strings.ToUpper(strings.TrimSpace(s)) {
+// ParseLevel converts "DEBUG", "INFO", "WARN"/"WARNING", "ERROR" (case
+// insensitive, surrounding whitespace ignored) to slog.Level. Empty or
+// unrecognised input returns LevelWarn. Used by the email handler
+// constructor and any caller that ingests level strings from config.
+func ParseLevel(s string) slog.Level {
+	switch trimUpper(s) {
 	case "DEBUG":
 		return slog.LevelDebug
 	case "INFO":
@@ -149,3 +88,9 @@ func ParseEmailMinLevel(s string) slog.Level {
 		return slog.LevelWarn
 	}
 }
+
+// ParseEmailMinLevel is the legacy name of ParseLevel preserved for
+// callers that imported the v0.1 API.
+//
+// Deprecated: use ParseLevel.
+func ParseEmailMinLevel(s string) slog.Level { return ParseLevel(s) }

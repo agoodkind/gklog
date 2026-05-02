@@ -44,6 +44,7 @@ func TestWithLoggerNilLoggerReturnsCtxUnchanged(t *testing.T) {
 func TestWithLoggerNilCtxUsesBackground(t *testing.T) {
 	t.Parallel()
 	custom := slog.New(slog.NewTextHandler(io.Discard, nil))
+	//nolint:staticcheck // SA1012: deliberately exercising the documented nil-ctx fallback path.
 	ctx := WithLogger(nil, custom)
 	if got := LoggerFromContext(ctx); got != custom {
 		t.Fatalf("nil input ctx: expected stored logger")
@@ -53,6 +54,7 @@ func TestWithLoggerNilCtxUsesBackground(t *testing.T) {
 func TestLoggerFromContextNilCtx(t *testing.T) {
 	t.Parallel()
 	def := slog.Default()
+	//nolint:staticcheck // SA1012: deliberately exercising the documented nil-ctx fallback path.
 	if got := LoggerFromContext(nil); got != def {
 		t.Fatalf("nil ctx: got %p want default %p", got, def)
 	}
