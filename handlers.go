@@ -131,18 +131,27 @@ func (t *TeeHandler) WithGroup(name string) slog.Handler {
 
 // --- TextHandler ---------------------------------------------------
 
-// TextHandler writes human-readable lines to a writer.
-// Format: 2006-01-02 15:04:05 <label> LEVEL msg key=val key=val
+// TextHandler writes human-readable lines to a writer. Format:
+//
+//	2006-01-02 15:04:05 <label> LEVEL msg key=val key=val
+//
+// Attrs added via slog.Logger.With and groups added via WithGroup are
+// preserved across handler clones. Group prefixes are dotted into the
+// rendered key (rpc.code=OK).
 type TextHandler struct {
-	mu    sync.Mutex
-	w     io.Writer
-	label string
+	mu     *sync.Mutex
+	w      io.Writer
+	label  string
+	attrs  []slog.Attr
+	groups []string
 }
 
 // NewTextHandler returns a TextHandler that writes to w with the given
 // label prefix. Empty label is allowed (just dropped from the output).
+// All clones produced by WithAttrs / WithGroup share the underlying
+// writer mutex so output stays line-atomic across loggers.
 func NewTextHandler(w io.Writer, label string) *TextHandler {
-	return &TextHandler{w: w, label: label}
+	return &TextHandler{w: w, label: label, mu: &sync.Mutex{}}
 }
 
 func (h *TextHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
@@ -158,11 +167,10 @@ func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 	b.WriteString(r.Level.String())
 	b.WriteByte(' ')
 	b.WriteString(r.Message)
+	textWriteAttrs(&b, "", h.attrs)
+	prefix := textGroupPrefix(h.groups)
 	r.Attrs(func(a slog.Attr) bool {
-		b.WriteByte(' ')
-		b.WriteString(a.Key)
-		b.WriteByte('=')
-		fmt.Fprintf(&b, "%v", a.Value.Any())
+		textWriteAttr(&b, prefix, a)
 		return true
 	})
 	b.WriteByte('\n')
@@ -173,8 +181,92 @@ func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 	return nil
 }
 
-func (h *TextHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
-func (h *TextHandler) WithGroup(string) slog.Handler      { return h }
+// WithAttrs returns a clone whose subsequent records render the given
+// attrs (wrapped in any active groups) before the per-record attrs.
+func (h *TextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if len(attrs) == 0 {
+		return h
+	}
+	out := &TextHandler{
+		mu:     h.mu,
+		w:      h.w,
+		label:  h.label,
+		attrs:  append(append([]slog.Attr(nil), h.attrs...), textWrapGroups(h.groups, attrs)...),
+		groups: append([]string(nil), h.groups...),
+	}
+	return out
+}
+
+// WithGroup returns a clone that nests subsequent attrs under name.
+// Empty name is a no-op (returns the receiver unchanged).
+func (h *TextHandler) WithGroup(name string) slog.Handler {
+	if name == "" {
+		return h
+	}
+	out := &TextHandler{
+		mu:     h.mu,
+		w:      h.w,
+		label:  h.label,
+		attrs:  append([]slog.Attr(nil), h.attrs...),
+		groups: append(append([]string(nil), h.groups...), name),
+	}
+	return out
+}
+
+func textWriteAttrs(b *strings.Builder, prefix string, attrs []slog.Attr) {
+	for _, a := range attrs {
+		textWriteAttr(b, prefix, a)
+	}
+}
+
+func textWriteAttr(b *strings.Builder, prefix string, a slog.Attr) {
+	a.Value = a.Value.Resolve()
+	if a.Equal(slog.Attr{}) {
+		return
+	}
+	if a.Value.Kind() == slog.KindGroup {
+		nested := a.Key
+		if prefix != "" {
+			nested = prefix + "." + a.Key
+		}
+		textWriteAttrs(b, nested, a.Value.Group())
+		return
+	}
+	key := a.Key
+	if prefix != "" {
+		key = prefix + "." + key
+	}
+	b.WriteByte(' ')
+	b.WriteString(key)
+	b.WriteByte('=')
+	fmt.Fprintf(b, "%v", a.Value.Any())
+}
+
+func textWrapGroups(groups []string, attrs []slog.Attr) []slog.Attr {
+	if len(groups) == 0 {
+		return attrs
+	}
+	wrapped := append([]slog.Attr(nil), attrs...)
+	for i := len(groups) - 1; i >= 0; i-- {
+		wrapped = []slog.Attr{slog.Group(groups[i], textAttrsToAny(wrapped)...)}
+	}
+	return wrapped
+}
+
+func textAttrsToAny(attrs []slog.Attr) []any {
+	out := make([]any, 0, len(attrs))
+	for _, a := range attrs {
+		out = append(out, a)
+	}
+	return out
+}
+
+func textGroupPrefix(groups []string) string {
+	if len(groups) == 0 {
+		return ""
+	}
+	return strings.Join(groups, ".")
+}
 
 // --- Rotation + locked writer ---------------------------------------
 

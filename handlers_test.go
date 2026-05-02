@@ -174,3 +174,19 @@ func (errHandler) Handle(context.Context, slog.Record) error {
 func (errHandler) WithAttrs([]slog.Attr) slog.Handler { return errHandler{} }
 
 func (errHandler) WithGroup(string) slog.Handler { return errHandler{} }
+
+func TestTextHandlerPreservesWithAttrsAndGroups(t *testing.T) {
+	t.Parallel()
+	var b strings.Builder
+	logger := slog.New(NewTextHandler(&b, "[mwan]")).
+		With("trace_id", "trace-456").
+		WithGroup("rpc")
+	logger.Info("hello", "code", "OK")
+	out := b.String()
+	if !strings.Contains(out, "trace_id=trace-456") {
+		t.Fatalf("trace_id missing: %q", out)
+	}
+	if !strings.Contains(out, "rpc.code=OK") {
+		t.Fatalf("group prefix missing: %q", out)
+	}
+}
