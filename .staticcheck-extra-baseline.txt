@@ -1,8 +1,1 @@
-# staticcheck-extra: generated_at=2026-05-05T01:07:26Z
-emaillog/handler.go:69:33: time.Now() outside clock helper; inject a clock.Clock for testability or //nolint:time_now_outside_clock	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
-handlers.go:256:42: do not use any; define a deeply enumerated named type	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
-trace/context.go:79:39: do not use any; define a deeply enumerated named type	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
-trace/middleware.go:26:12: time.Now() outside clock helper; inject a clock.Clock for testability or //nolint:time_now_outside_clock	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
-trace/op.go:34:11: time.Now() outside clock helper; inject a clock.Clock for testability or //nolint:time_now_outside_clock	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
-trace/pgx.go:28:48: time.Now() outside clock helper; inject a clock.Clock for testability or //nolint:time_now_outside_clock	# staticcheck-extra:first_added=2026-05-05T01:07:26Z last_seen=2026-05-05T01:07:26Z
-trace/setup.go:148:2: function Close returns a wrapped error without an accompanying slog.Error/Warn; either log before returning or add //nolint:wrapped_error_without_slog	# staticcheck-extra:first_added=2026-05-05T01:06:46Z last_seen=2026-05-05T01:07:26Z
+# staticcheck-extra: generated_at=2026-05-05T03:43:46Z
