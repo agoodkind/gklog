@@ -1,6 +1,6 @@
-// Package emaillog provides a slog.Handler that sends email for every log
-// record at or above a configured threshold level. A per-message-string
-// cooldown prevents floods during sustained outages.
+// Package emaillog provides a [log/slog.Handler] that sends email for
+// every log record at or above a configured threshold level. A
+// per-message-string cooldown prevents floods during sustained outages.
 package emaillog
 
 import (
@@ -25,7 +25,8 @@ type sharedState struct {
 	lastSent map[string]time.Time
 }
 
-// Handler is a slog.Handler that emails records at or above threshold.
+// Handler is a [log/slog.Handler] that emails records at or above
+// threshold.
 type Handler struct {
 	SubjectPrefix string
 	threshold     slog.Level
@@ -66,7 +67,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		h.shared.mu.Unlock()
 		return nil
 	}
-	h.shared.lastSent[r.Message] = time.Now()
+	h.shared.lastSent[r.Message] = nowFn()
 	h.shared.mu.Unlock()
 
 	levelStr := strings.ToUpper(r.Level.String())
@@ -95,18 +96,38 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	writeAttr("time", r.Time.Format(time.RFC3339))
 	writeAttr("level", levelStr)
 
-	return h.sender.Send(ctx, h.to, subject, body.String())
+	if err := h.sender.Send(ctx, h.to, subject, body.String()); err != nil {
+		return &SendError{err: err}
+	}
+	return nil
 }
 
-// WithAttrs returns a clone with additional attributes prepended to every email body.
+// SendError reports a delivery failure from [Handler.Handle]. The
+// underlying [Sender] error is recoverable via [errors.Unwrap] /
+// [errors.As].
+type SendError struct {
+	err error
+}
+
+// Error reports the wrapped sender failure.
+func (e *SendError) Error() string {
+	return "emaillog: send: " + e.err.Error()
+}
+
+// Unwrap returns the underlying [Sender] error.
+func (e *SendError) Unwrap() error { return e.err }
+
+// WithAttrs returns a clone with additional attributes prepended to
+// every email body.
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	out := *h
 	out.attrs = append(append([]slog.Attr(nil), h.attrs...), attrs...)
 	return &out
 }
 
-// WithGroup returns a clone with the group name stored (used for completeness;
-// group prefix is not currently applied to body attribute keys).
+// WithGroup returns a clone with the group name stored (kept for
+// completeness; group prefix is not currently applied to body
+// attribute keys).
 func (h *Handler) WithGroup(name string) slog.Handler {
 	out := *h
 	out.attrs = append([]slog.Attr(nil), h.attrs...)
