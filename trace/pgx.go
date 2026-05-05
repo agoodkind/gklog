@@ -18,8 +18,10 @@ import (
 // queries from any repo are covered.
 type QueryTracer struct{}
 
-type queryStartKey struct{}
-type querySpanKey struct{}
+type (
+	queryStartKey struct{}
+	querySpanKey  struct{}
+)
 
 // TraceQueryStart records the start time and opens a child span for the query.
 func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {

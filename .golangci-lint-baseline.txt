@@ -1,0 +1,54 @@
+# golangci-lint: generated_at=2026-05-05T01:07:15Z
+../context.go:11:1: godoc line is too long (78 > 77) (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../context.go:28:1: godoc line is too long (79 > 77) (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../context.go:29:1: godoc line is too long (78 > 77) (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../emaillog/handler.go:1:1: text "slog.Handler" should be replaced with "[slog.Handler]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../emaillog/handler.go:101:1: godoc line is too long (83 > 77) (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../emaillog/handler.go:28:1: text "slog.Handler" should be replaced with "[slog.Handler]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../emaillog/handler.go:98:9: error returned from interface method should be wrapped: sig: func (goodkind.io/gklog/emaillog.Sender).Send(ctx context.Context, to string, subject string, body string) error (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../factory.go:1:1: text "slog.Handler" should be replaced with "[slog.Handler]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../factory.go:42:1: text "io.Closer" should be replaced with "[io.Closer]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../factory.go:65:7: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../factory.go:73:1: text "slog.Level" should be replaced with "[slog.Level]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:105:1: exported: exported method TeeHandler.Handle should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:108:7: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:109:12: error returned from interface method should be wrapped: sig: func (log/slog.Handler).Handle(context.Context, log/slog.Record) error (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:116:1: exported: exported method TeeHandler.WithAttrs should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:124:1: exported: exported method TeeHandler.WithGroup should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:134:1: text "slog.Logger.With" should be replaced with "[slog.Logger.With]" to link to stdlib method (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:136:1: Duplicate words (key=val) found (dupword)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:157:1: exported: exported method TextHandler.Enabled should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:159:1: exported: exported method TextHandler.Handle should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:19:1: text "slog.Handler" should be replaced with "[slog.Handler]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:26:1: text "io.Closer" should be replaced with "[io.Closer]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:343:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:344:13: error returned from external package is unwrapped: sig: func (*github.com/gofrs/flock.Flock).Lock() error (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:347:9: error returned from interface method should be wrapped: sig: func (io.Writer).Write(p []byte) (n int, err error) (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:356:9: error returned from interface method should be wrapped: sig: func (io.Closer).Close() error (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:40:1: text "io.Closer" should be replaced with "[io.Closer]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:53:1: text "slog.Handler" should be replaced with "[slog.Handler]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:61:1: text "io.Closer" should be replaced with "[io.Closer]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:65:2: there must be an empty line separating embedded fields from regular fields (embeddedstructfieldcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:73:9: error returned from interface method should be wrapped: sig: func (io.Closer).Close() error (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:86:1: text "slog.Record" should be replaced with "[slog.Record]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../handlers.go:96:1: exported: exported method TeeHandler.Enabled should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/context.go:36:6: exported: func name will be used as trace.TraceID by other packages, and that stutters; consider calling this ID (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/middleware.go:80:2: there must be an empty line separating embedded fields from regular fields (embeddedstructfieldcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/middleware.go:93:12: error returned from interface method should be wrapped: sig: func (net/http.ResponseWriter).Write([]byte) (int, error) (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/pgx.go:21:1: File is not properly formatted (gofumpt)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/pgx.go:25:7: unused-receiver: method receiver 't' is not referenced in method's body, consider removing or renaming it as _ (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/pgx.go:27:7: unused-receiver: method receiver 't' is not referenced in method's body, consider removing or renaming it as _ (revive)	# golangci-lint:first_added=2026-05-05T01:07:15Z last_seen=2026-05-05T01:07:15Z
+../trace/pgx.go:37:7: unused-receiver: method receiver 't' is not referenced in method's body, consider removing or renaming it as _ (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/pgx.go:39:7: unused-receiver: method receiver 't' is not referenced in method's body, consider removing or renaming it as _ (revive)	# golangci-lint:first_added=2026-05-05T01:07:15Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:113:9: error returned from external package is unwrapped: sig: func go.opentelemetry.io/otel/sdk/resource.Merge(a *go.opentelemetry.io/otel/sdk/resource.Resource, b *go.opentelemetry.io/otel/sdk/resource.Resource) (*go.opentelemetry.io/otel/sdk/resource.Resource, error) (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:124:16: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:131:9: error returned from external package is unwrapped: sig: func go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc.New(ctx context.Context, opts ...go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc.Option) (*go.opentelemetry.io/otel/exporters/otlp/otlptrace.Exporter, error) (wrapcheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:144:6: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:47:1: text "io.Closer" should be replaced with "[io.Closer]" to link to stdlib type (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../trace/setup.go:99:9: span is unassigned, probable memory leak (spancheck)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:1:1: package-comments: should have a package comment (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:11:1: Comment should end in a period (godot)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:4:2: exported: exported var Commit should have comment or be unexported (revive)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:5:2: symbol should have a godoc ("Dirty") (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:6:2: symbol should have a godoc ("BinHash") (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
+../version/version.go:7:2: symbol should have a godoc ("BuildTime") (godoclint)	# golangci-lint:first_added=2026-05-05T01:06:45Z last_seen=2026-05-05T01:07:15Z
