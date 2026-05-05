@@ -2,7 +2,7 @@ package trace
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"strings"
@@ -45,8 +45,8 @@ type Options struct {
 }
 
 // Setup installs a TracerProvider and the W3C TraceContext + Baggage
-// propagator on the global OTel registry. The returned io.Closer flushes
-// and shuts the provider down; callers must Close on shutdown.
+// propagator on the global OTel registry. The returned [io.Closer]
+// flushes and shuts the provider down; callers must Close on shutdown.
 //
 // Setup is safe to call once per process; calling it again replaces the
 // global provider but does not shut the previous one down (the caller
@@ -94,7 +94,11 @@ func Tracer() trace.Tracer {
 	return otel.Tracer(name)
 }
 
-// StartSpan starts a child span using the active instrumentation name.
+// StartSpan starts a child span using the active instrumentation
+// name. The caller owns the returned span and MUST call span.End()
+// when the operation completes. This is a thin pass-through to
+// [Tracer].Start so callers do not have to track the active
+// instrumentation name themselves.
 func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
 	return Tracer().Start(ctx, name, opts...)
 }
@@ -110,10 +114,14 @@ func buildResource(opts Options) (*resource.Resource, error) {
 	if len(attrs) == 0 {
 		return resource.Default(), nil
 	}
-	return resource.Merge(
+	merged, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(semconv.SchemaURL, attrs...),
 	)
+	if err != nil {
+		return nil, &otelSetupError{op: "merge resource", err: err}
+	}
+	return merged, nil
 }
 
 func newTraceExporter(endpoint string) (*otlptrace.Exporter, error) {
@@ -128,8 +136,26 @@ func newTraceExporter(endpoint string) (*otlptrace.Exporter, error) {
 		}
 	}
 
-	return otlptracegrpc.New(ctx, append(options, otlptracegrpc.WithEndpoint(endpoint))...)
+	exporter, err := otlptracegrpc.New(ctx,
+		append(options, otlptracegrpc.WithEndpoint(endpoint))...)
+	if err != nil {
+		return nil, &otelSetupError{op: "otlp exporter", err: err}
+	}
+	return exporter, nil
 }
+
+// otelSetupError wraps an OTel SDK construction failure from [Setup].
+// The underlying error is recoverable via [errors.Unwrap] / [errors.As].
+type otelSetupError struct {
+	op  string
+	err error
+}
+
+func (e *otelSetupError) Error() string {
+	return "trace: " + e.op + ": " + e.err.Error()
+}
+
+func (e *otelSetupError) Unwrap() error { return e.err }
 
 type traceCloser struct {
 	shutdowns []func(context.Context) error
@@ -145,5 +171,21 @@ func (t traceCloser) Close() error {
 			errs = append(errs, err)
 		}
 	}
-	return errors.Join(errs...)
+	if len(errs) == 0 {
+		return nil
+	}
+	return &shutdownError{errs: errs}
 }
+
+// shutdownError aggregates per-stage failures from [traceCloser.Close].
+// Recover the underlying errors via [errors.As] (using Unwrap returning
+// []error).
+type shutdownError struct {
+	errs []error
+}
+
+func (e *shutdownError) Error() string {
+	return fmt.Sprintf("trace: shutdown: %d error(s)", len(e.errs))
+}
+
+func (e *shutdownError) Unwrap() []error { return e.errs }

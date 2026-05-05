@@ -23,9 +23,10 @@ type (
 	querySpanKey  struct{}
 )
 
-// TraceQueryStart records the start time and opens a child span for the query.
-func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
-	ctx = context.WithValue(ctx, queryStartKey{}, time.Now())
+// TraceQueryStart records the start time and opens a child span for
+// the query.
+func (*QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	ctx = context.WithValue(ctx, queryStartKey{}, nowFn())
 	operation := queryOperation(data.SQL)
 	ctx, span := StartSpan(ctx, "db.query",
 		trace.WithSpanKind(trace.SpanKindClient),
@@ -36,7 +37,7 @@ func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx
 
 // TraceQueryEnd closes the span, records command tag and rows-affected,
 // and emits a debug or error log line depending on outcome.
-func (t *QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
+func (*QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
 	start, _ := ctx.Value(queryStartKey{}).(time.Time)
 	latency := time.Since(start)
 	span, _ := ctx.Value(querySpanKey{}).(trace.Span)

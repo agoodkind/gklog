@@ -21,11 +21,11 @@ func TestRequestIDEmptyByDefault(t *testing.T) {
 
 func TestTraceIDAndSpanIDEmptyWithoutSpan(t *testing.T) {
 	ctx := context.Background()
-	if got := TraceID(ctx); got != "" {
-		t.Fatalf("TraceID = %q, want empty", got)
+	if got := IDFromContext(ctx); got != "" {
+		t.Fatalf("IDFromContext = %q, want empty", got)
 	}
-	if got := SpanID(ctx); got != "" {
-		t.Fatalf("SpanID = %q, want empty", got)
+	if got := SpanIDFromContext(ctx); got != "" {
+		t.Fatalf("SpanIDFromContext = %q, want empty", got)
 	}
 }
 

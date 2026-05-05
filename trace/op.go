@@ -31,7 +31,7 @@ var SlowOpThreshold = 50 * time.Millisecond
 // should use stable names like "store.node.create_atomic" or
 // "resolver.scope.lookup".
 func Op(ctx context.Context, name string) func(err *error) {
-	start := time.Now()
+	start := nowFn()
 	return func(errp *error) {
 		dur := time.Since(start)
 		log := gklog.L(ctx).With(

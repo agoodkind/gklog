@@ -31,9 +31,12 @@ func RequestID(ctx context.Context) string {
 	return requestID
 }
 
-// TraceID returns the active trace identifier from the current span context,
-// or "" when no valid span is attached to ctx.
-func TraceID(ctx context.Context) string {
+// IDFromContext returns the active OTel trace identifier from the
+// current span context, or "" when no valid span is attached to ctx.
+//
+// This was previously named TraceID; renamed to avoid the
+// trace.TraceID stutter flagged by revive. Callers should update.
+func IDFromContext(ctx context.Context) string {
 	spanContext := trace.SpanContextFromContext(ctx)
 	if !spanContext.IsValid() {
 		return ""
@@ -41,9 +44,12 @@ func TraceID(ctx context.Context) string {
 	return spanContext.TraceID().String()
 }
 
-// SpanID returns the active span identifier from the current span context,
-// or "" when no valid span is attached to ctx.
-func SpanID(ctx context.Context) string {
+// SpanIDFromContext returns the active OTel span identifier from the
+// current span context, or "" when no valid span is attached to ctx.
+//
+// This was previously named SpanID; renamed in lockstep with
+// IDFromContext for symmetry. Callers should update.
+func SpanIDFromContext(ctx context.Context) string {
 	spanContext := trace.SpanContextFromContext(ctx)
 	if !spanContext.IsValid() {
 		return ""
@@ -66,20 +72,16 @@ func LoggerWithContext(ctx context.Context, base *slog.Logger, attrs ...slog.Att
 	if requestID := RequestID(ctx); requestID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("request_id", requestID))
 	}
-	if traceID := TraceID(ctx); traceID != "" {
+	if traceID := IDFromContext(ctx); traceID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("trace_id", traceID))
 	}
-	if spanID := SpanID(ctx); spanID != "" {
+	if spanID := SpanIDFromContext(ctx); spanID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("span_id", spanID))
 	}
 	loggerAttrs = append(loggerAttrs, attrs...)
-	return base.With(attrsToArgs(loggerAttrs)...)
-}
-
-func attrsToArgs(attrs []slog.Attr) []any {
-	args := make([]any, 0, len(attrs))
-	for _, attr := range attrs {
+	args := make([]any, 0, len(loggerAttrs))
+	for _, attr := range loggerAttrs {
 		args = append(args, attr)
 	}
-	return args
+	return base.With(args...)
 }

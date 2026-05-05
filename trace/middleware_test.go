@@ -38,10 +38,10 @@ func TestRequestLoggerPreservesInboundRequestIDAndTraceContext(t *testing.T) {
 		if got := RequestID(r.Context()); got != testRequestID {
 			t.Fatalf("request id = %q, want %q", got, testRequestID)
 		}
-		if got := TraceID(r.Context()); got != testTraceID {
+		if got := IDFromContext(r.Context()); got != testTraceID {
 			t.Fatalf("trace id = %q, want %q", got, testTraceID)
 		}
-		if got := SpanID(r.Context()); got == "" {
+		if got := SpanIDFromContext(r.Context()); got == "" {
 			t.Fatal("span id is empty")
 		}
 

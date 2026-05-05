@@ -23,7 +23,7 @@ import (
 //   - Echoes X-Request-ID on the response.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+		start := nowFn()
 
 		reqID := r.Header.Get(RequestIDHeader)
 		if reqID == "" {
@@ -78,6 +78,7 @@ func RequestLogger(next http.Handler) http.Handler {
 
 type responseWriter struct {
 	http.ResponseWriter
+
 	status int
 	bytes  int64
 }
@@ -90,5 +91,21 @@ func (rw *responseWriter) WriteHeader(status int) {
 func (rw *responseWriter) Write(b []byte) (int, error) {
 	n, err := rw.ResponseWriter.Write(b)
 	rw.bytes += int64(n)
-	return n, err
+	if err != nil {
+		return n, &responseWriteError{err: err}
+	}
+	return n, nil
 }
+
+// responseWriteError wraps the underlying [net/http.ResponseWriter]
+// failure from a [responseWriter.Write]. Recover the original via
+// [errors.Unwrap] / [errors.As].
+type responseWriteError struct {
+	err error
+}
+
+func (e *responseWriteError) Error() string {
+	return "trace: response write: " + e.err.Error()
+}
+
+func (e *responseWriteError) Unwrap() error { return e.err }
