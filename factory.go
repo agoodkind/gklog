@@ -54,6 +54,16 @@ type handlerListCloser struct {
 	closed   bool
 }
 
+type parsedLevelName string
+
+const (
+	parsedLevelDebug   parsedLevelName = "DEBUG"
+	parsedLevelInfo    parsedLevelName = "INFO"
+	parsedLevelWarn    parsedLevelName = "WARN"
+	parsedLevelWarning parsedLevelName = "WARNING"
+	parsedLevelError   parsedLevelName = "ERROR"
+)
+
 func (c *handlerListCloser) Close() error {
 	if c.closed {
 		return nil
@@ -79,14 +89,14 @@ func (c *handlerListCloser) Close() error {
 // the email handler constructor and any caller that ingests level
 // strings from config.
 func ParseLevel(s string) slog.Level {
-	switch trimUpper(s) {
-	case "DEBUG":
+	switch parsedLevelName(trimUpper(s)) {
+	case parsedLevelDebug:
 		return slog.LevelDebug
-	case "INFO":
+	case parsedLevelInfo:
 		return slog.LevelInfo
-	case "WARN", "WARNING":
+	case parsedLevelWarn, parsedLevelWarning:
 		return slog.LevelWarn
-	case "ERROR":
+	case parsedLevelError:
 		return slog.LevelError
 	default:
 		return slog.LevelWarn

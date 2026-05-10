@@ -12,6 +12,10 @@ Store a request scoped `*slog.Logger` on `context.Context` so middleware can att
 
 Downstream should prefer `LoggerFromContext(ctx).InfoContext(ctx, msg, ...)` so the record carries the same `context` through `slog` handlers.
 
+## Build metadata
+
+Consumers must provide valid gklog build metadata through their normal build pipeline. Builds that do not provide valid metadata should fail before application startup.
+
 ## Releasing
 
 After merging changes, tag a new version (or let consumers pin a pseudo version with `go get goodkind.io/gklog@<commit>`). Downstream modules update their `require` and drop any temporary `replace` directives pointing at a local checkout.
