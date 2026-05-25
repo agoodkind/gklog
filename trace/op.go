@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"goodkind.io/gklog"
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 // SlowOpThreshold is the latency above which Op emits a "slow" warning.
@@ -31,9 +32,16 @@ var SlowOpThreshold = 50 * time.Millisecond
 // should use stable names like "store.node.create_atomic" or
 // "resolver.scope.lookup".
 func Op(ctx context.Context, name string) func(err *error) {
-	start := nowFn()
+	return opWithClock(ctx, name, gkclock.System)
+}
+
+func opWithClock(ctx context.Context, name string, opClock gkclock.Clock) func(err *error) {
+	if opClock == nil {
+		opClock = gkclock.System
+	}
+	start := opClock.Now()
 	return func(errp *error) {
-		dur := time.Since(start)
+		dur := opClock.Now().Sub(start)
 		log := gklog.L(ctx).With(
 			slog.String("op", name),
 			slog.Int64("duration_ms", dur.Milliseconds()),

@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"goodkind.io/gklog"
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 // QueryTracer implements pgx.QueryTracer to log every database query and
@@ -25,8 +26,8 @@ type (
 
 // TraceQueryStart records the start time and opens a child span for
 // the query.
-func (*QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
-	ctx = context.WithValue(ctx, queryStartKey{}, nowFn())
+func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+	ctx = context.WithValue(ctx, queryStartKey{}, t.now())
 	operation := queryOperation(data.SQL)
 	ctx, span := StartSpan(ctx, "db.query",
 		trace.WithSpanKind(trace.SpanKindClient),
@@ -37,9 +38,9 @@ func (*QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.T
 
 // TraceQueryEnd closes the span, records command tag and rows-affected,
 // and emits a debug or error log line depending on outcome.
-func (*QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
+func (t *QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryEndData) {
 	start, _ := ctx.Value(queryStartKey{}).(time.Time)
-	latency := time.Since(start)
+	latency := t.now().Sub(start)
 	span, _ := ctx.Value(querySpanKey{}).(trace.Span)
 	if span != nil {
 		span.SetAttributes(
@@ -72,6 +73,10 @@ func (*QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.Tra
 		slog.Duration("latency", latency),
 		slog.Int64("rows", data.CommandTag.RowsAffected()),
 	)
+}
+
+func (*QueryTracer) now() time.Time {
+	return gkclock.System.Now()
 }
 
 func queryOperation(sql string) string {

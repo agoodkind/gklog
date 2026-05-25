@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"time"
 
 	"github.com/google/uuid"
 	"go.opentelemetry.io/otel/attribute"
@@ -12,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/trace"
 	"goodkind.io/gklog"
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 // RequestLogger is HTTP middleware that:
@@ -22,8 +22,15 @@ import (
 //   - Logs one "request" summary record per call with status, bytes, latency.
 //   - Echoes X-Request-ID on the response.
 func RequestLogger(next http.Handler) http.Handler {
+	return requestLoggerWithClock(next, gkclock.System)
+}
+
+func requestLoggerWithClock(next http.Handler, requestClock gkclock.Clock) http.Handler {
+	if requestClock == nil {
+		requestClock = gkclock.System
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := nowFn()
+		start := requestClock.Now()
 
 		reqID := r.Header.Get(RequestIDHeader)
 		if reqID == "" {
@@ -58,7 +65,7 @@ func RequestLogger(next http.Handler) http.Handler {
 
 		next.ServeHTTP(rw, r)
 
-		latency := time.Since(start)
+		latency := requestClock.Now().Sub(start)
 		span.SetAttributes(
 			attribute.Int("http.response.status_code", rw.status),
 			attribute.Int64("http.response.body.size", rw.bytes),

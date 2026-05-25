@@ -7,6 +7,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 type mockSender struct {
@@ -65,7 +67,9 @@ func TestHandleSendsAtThreshold(t *testing.T) {
 func TestHandleSuppressesDuplicateWithinCooldown(t *testing.T) {
 	t.Parallel()
 	s := &mockSender{}
-	h := New(slog.LevelInfo, time.Minute, s, "ops@example.com", "[gklog]")
+	currentTime := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock := gkclock.Func(func() time.Time { return currentTime })
+	h := newWithClock(slog.LevelInfo, time.Minute, s, "ops@example.com", "[gklog]", clock)
 	send := func() {
 		r := slog.NewRecord(time.Now(), slog.LevelError, "same message", 0)
 		if err := h.Handle(context.Background(), r); err != nil {
@@ -83,7 +87,9 @@ func TestHandleAllowsAfterCooldownExpires(t *testing.T) {
 	t.Parallel()
 	s := &mockSender{}
 	cd := 20 * time.Millisecond
-	h := New(slog.LevelInfo, cd, s, "ops@example.com", "[gklog]")
+	currentTime := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock := gkclock.Func(func() time.Time { return currentTime })
+	h := newWithClock(slog.LevelInfo, cd, s, "ops@example.com", "[gklog]", clock)
 	send := func() {
 		r := slog.NewRecord(time.Now(), slog.LevelError, "retry msg", 0)
 		if err := h.Handle(context.Background(), r); err != nil {
@@ -91,7 +97,7 @@ func TestHandleAllowsAfterCooldownExpires(t *testing.T) {
 		}
 	}
 	send()
-	time.Sleep(cd + 20*time.Millisecond)
+	currentTime = currentTime.Add(cd + time.Nanosecond)
 	send()
 	if s.count() != 2 {
 		t.Fatalf("expected 2 emails, got %d", s.count())

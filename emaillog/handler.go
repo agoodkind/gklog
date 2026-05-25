@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 // Sender delivers a single email notification.
@@ -35,17 +37,33 @@ type Handler struct {
 	to            string
 	attrs         []slog.Attr
 	group         string
+	clock         gkclock.Clock
 	shared        *sharedState
 }
 
 // New returns a Handler ready to emit emails.
 func New(threshold slog.Level, cooldown time.Duration, sender Sender, to string, subjectPrefix string) *Handler {
+	return newWithClock(threshold, cooldown, sender, to, subjectPrefix, gkclock.System)
+}
+
+func newWithClock(
+	threshold slog.Level,
+	cooldown time.Duration,
+	sender Sender,
+	to string,
+	subjectPrefix string,
+	clock gkclock.Clock,
+) *Handler {
+	if clock == nil {
+		clock = gkclock.System
+	}
 	return &Handler{
 		SubjectPrefix: subjectPrefix,
 		threshold:     threshold,
 		cooldown:      cooldown,
 		sender:        sender,
 		to:            to,
+		clock:         clock,
 		shared:        &sharedState{lastSent: make(map[string]time.Time)},
 	}
 }
@@ -63,11 +81,12 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 
 	h.shared.mu.Lock()
 	last, ok := h.shared.lastSent[r.Message]
-	if ok && time.Since(last) < h.cooldown {
+	now := h.now()
+	if ok && now.Sub(last) < h.cooldown {
 		h.shared.mu.Unlock()
 		return nil
 	}
-	h.shared.lastSent[r.Message] = nowFn()
+	h.shared.lastSent[r.Message] = now
 	h.shared.mu.Unlock()
 
 	levelStr := strings.ToUpper(r.Level.String())
@@ -100,6 +119,13 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		return &SendError{err: err}
 	}
 	return nil
+}
+
+func (h *Handler) now() time.Time {
+	if h.clock == nil {
+		return gkclock.System.Now()
+	}
+	return h.clock.Now()
 }
 
 // SendError reports a delivery failure from [Handler.Handle]. The

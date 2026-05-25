@@ -8,13 +8,16 @@ import (
 	"time"
 
 	"goodkind.io/gklog"
+	gkclock "goodkind.io/gklog/internal/clock"
 )
 
 func TestOpEmitsDebugOnFastSuccess(t *testing.T) {
 	capture, ctx := captureCtx(t)
+	currentTime := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock := gkclock.Func(func() time.Time { return currentTime })
 
 	_ = func() (err error) {
-		defer Op(ctx, "fast.op")(&err)
+		defer opWithClock(ctx, "fast.op", clock)(&err)
 		return nil
 	}()
 
@@ -59,14 +62,12 @@ func TestOpEmitsWarnOnFailure(t *testing.T) {
 
 func TestOpEmitsWarnOnSlow(t *testing.T) {
 	capture, ctx := captureCtx(t)
-
-	original := SlowOpThreshold
-	SlowOpThreshold = time.Microsecond
-	t.Cleanup(func() { SlowOpThreshold = original })
+	currentTime := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+	clock := gkclock.Func(func() time.Time { return currentTime })
 
 	_ = func() (err error) {
-		defer Op(ctx, "slow.op")(&err)
-		time.Sleep(2 * time.Millisecond)
+		defer opWithClock(ctx, "slow.op", clock)(&err)
+		currentTime = currentTime.Add(SlowOpThreshold + time.Millisecond)
 		return nil
 	}()
 
