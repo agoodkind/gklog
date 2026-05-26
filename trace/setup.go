@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/url"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -166,8 +167,8 @@ func (t traceCloser) Close() error {
 	defer cancel()
 
 	var errs []error
-	for i := len(t.shutdowns) - 1; i >= 0; i-- {
-		if err := t.shutdowns[i](ctx); err != nil {
+	for _, shutdown := range slices.Backward(t.shutdowns) {
+		if err := shutdown(ctx); err != nil {
 			errs = append(errs, err)
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -303,9 +304,9 @@ func textWrapGroups(groups []string, attrs []slog.Attr) []slog.Attr {
 		return attrs
 	}
 	wrapped := append([]slog.Attr(nil), attrs...)
-	for i := len(groups) - 1; i >= 0; i-- {
+	for _, group := range slices.Backward(groups) {
 		wrapped = []slog.Attr{{
-			Key:   groups[i],
+			Key:   group,
 			Value: slog.GroupValue(wrapped...),
 		}}
 	}
