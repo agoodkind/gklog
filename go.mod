@@ -1,6 +1,6 @@
 module goodkind.io/gklog
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/gofrs/flock v0.13.0
