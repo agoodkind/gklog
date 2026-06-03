@@ -23,7 +23,10 @@ GKLOG_TEST_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo test
 GKLOG_TEST_DIRTY := $(shell git diff --quiet 2>/dev/null && echo false || echo true)
 GKLOG_TEST_BUILD_TIME := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 GKLOG_TEST_LDFLAGS := -X $(GKLOG_VPKG).Commit=$(GKLOG_TEST_COMMIT) -X $(GKLOG_VPKG).Dirty=$(GKLOG_TEST_DIRTY) -X $(GKLOG_VPKG).BuildTime=$(GKLOG_TEST_BUILD_TIME) -X $(GKLOG_VPKG).BinHash=
-GO_TEST_TARGETS := -ldflags '$(GKLOG_TEST_LDFLAGS)' ./...
+# Pass stamping ldflags to `go test` through GO_TEST_LDFLAGS, which go-mk inserts
+# as one -ldflags argv element. GO_TEST_TARGETS is whitespace-split and cannot
+# carry a quoted multi-word value.
+GO_TEST_LDFLAGS := $(GKLOG_TEST_LDFLAGS)
 DEADCODE_TARGETS := -tags gklog_stamped ./...
 
 # Pipeline modules
