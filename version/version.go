@@ -1,10 +1,16 @@
 // Package version exposes build-time identification variables that are
-// stamped at link time by every binary that imports gklog. The four
-// exported vars (Commit, Dirty, BinHash, BuildTime) are part of the
-// public stamping ABI; do not rename or remove them.
+// stamped at link time by every binary that imports gklog. The five
+// exported vars (Version, Commit, Dirty, BinHash, BuildTime) are part of
+// the public stamping ABI; do not rename or remove them.
 package version
 
 var (
+	// Version is the release tag stamped at build time via
+	// -ldflags "-X goodkind.io/gklog/version.Version=...".
+	// Defaults to "unknown" when not stamped. Release tooling stamps
+	// this with the published release tag so consumers can compare the
+	// running build against the latest release.
+	Version = "unknown"
 	// Commit is the git commit SHA stamped at build time via
 	// -ldflags "-X goodkind.io/gklog/version.Commit=...".
 	// Defaults to "unknown" when not stamped.
@@ -21,13 +27,17 @@ var (
 )
 
 // String returns a human-readable build identifier suitable for log
-// attrs. Format: "<short-commit>[+dirty] built <BuildTime>".
+// attrs. Format: "[<Version> ]<short-commit>[+dirty] built <BuildTime>".
+// Version is included as a leading token when it has been stamped.
 func String() string {
 	commit := Commit
 	if commit != "unknown" && len(commit) > 12 {
 		commit = commit[:12]
 	}
 	out := commit
+	if Version != "unknown" && Version != "" {
+		out = Version + " " + out
+	}
 	if Dirty == "true" {
 		out += "+dirty"
 	}
