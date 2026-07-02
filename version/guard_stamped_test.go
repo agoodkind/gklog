@@ -5,8 +5,8 @@ package version
 import "testing"
 
 func TestBuildMetadataValidAcceptsRequiredValues(t *testing.T) {
-	oc, od, ob, obt := saveVersion()
-	defer restoreVersion(oc, od, ob, obt)
+	ov, oc, od, ob, obt := saveVersion()
+	defer restoreVersion(ov, oc, od, ob, obt)
 	Commit = "abcdef1234567890"
 	Dirty = "false"
 	BinHash = ""
@@ -17,8 +17,8 @@ func TestBuildMetadataValidAcceptsRequiredValues(t *testing.T) {
 }
 
 func TestBuildMetadataValidRejectsMissingCommit(t *testing.T) {
-	oc, od, ob, obt := saveVersion()
-	defer restoreVersion(oc, od, ob, obt)
+	ov, oc, od, ob, obt := saveVersion()
+	defer restoreVersion(ov, oc, od, ob, obt)
 	Commit = "unknown"
 	Dirty = "false"
 	BinHash = ""
@@ -29,8 +29,8 @@ func TestBuildMetadataValidRejectsMissingCommit(t *testing.T) {
 }
 
 func TestBuildMetadataValidRejectsInvalidDirty(t *testing.T) {
-	oc, od, ob, obt := saveVersion()
-	defer restoreVersion(oc, od, ob, obt)
+	ov, oc, od, ob, obt := saveVersion()
+	defer restoreVersion(ov, oc, od, ob, obt)
 	Commit = "abcdef1234567890"
 	Dirty = "unknown"
 	BinHash = ""
@@ -41,8 +41,8 @@ func TestBuildMetadataValidRejectsInvalidDirty(t *testing.T) {
 }
 
 func TestBuildMetadataValidRejectsMissingBuildTime(t *testing.T) {
-	oc, od, ob, obt := saveVersion()
-	defer restoreVersion(oc, od, ob, obt)
+	ov, oc, od, ob, obt := saveVersion()
+	defer restoreVersion(ov, oc, od, ob, obt)
 	Commit = "abcdef1234567890"
 	Dirty = "false"
 	BinHash = ""
