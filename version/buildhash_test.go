@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// TestBuildHashReturnsRuntimeDigest verifies BuildHash hashes the running
-// test binary rather than returning the unstamped BinHash sentinel, so the
-// update path always has a non-empty build identity.
+// TestBuildHashReturnsRuntimeDigest verifies BuildHash hashes the running test
+// binary and returns a 12-character hex digest rather than the "unknown"
+// fallback, so the update path always has a non-empty build identity.
 func TestBuildHashReturnsRuntimeDigest(t *testing.T) {
 	got := BuildHash()
 	if got == "unknown" {

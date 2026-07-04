@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"io"
 	"os"
+	"sync"
 )
 
 var (
@@ -33,12 +34,26 @@ var (
 	BuildTime = "unknown"
 )
 
-// BuildHash computes the SHA-256 of the running binary, truncated to 12 hex
-// characters. Unlike BinHash, which is a build-time stamp left empty for
-// locally built binaries, BuildHash is computed at runtime from the on-disk
-// executable, so it is always populated. Update tooling uses it as the
-// non-empty build identity that the release channel requires.
+var (
+	buildHashOnce  sync.Once
+	buildHashValue string
+)
+
+// BuildHash returns the SHA-256 of the running binary, truncated to 12 hex
+// characters and computed once per process. It is a best-effort runtime
+// identity: it returns "unknown" when the executable cannot be read. Unlike
+// BinHash, a build-time stamp left empty for locally built binaries, BuildHash
+// is derived at runtime, so it is populated for both local and release builds.
+// Update tooling uses it as the non-empty build identity that its Config
+// validation requires.
 func BuildHash() string {
+	buildHashOnce.Do(func() {
+		buildHashValue = computeBuildHash()
+	})
+	return buildHashValue
+}
+
+func computeBuildHash() string {
 	exe, err := os.Executable()
 	if err != nil {
 		return "unknown"
