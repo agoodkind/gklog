@@ -7,9 +7,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  attestations: write
+  contents: read
+
 jobs:
   go:
     uses: agoodkind/go-makefile/.github/workflows/_ci.yml@main
     permissions:
       contents: read
       id-token: write
+      attestations: write
+    secrets: inherit
