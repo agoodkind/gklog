@@ -369,6 +369,8 @@ func NewLumberjackWriterWithConfig(path string, rc RotationConfig) *lumberjack.L
 // Write call. This matters for JSONL durability: overlapping daemon
 // instances or a restart during rotation should not interleave partial
 // records into the same file.
+// Lumberjack writers reopen the active path after another writer or
+// retention process changes its identity, size, or modification time.
 func NewLockedWriteCloser(path string, wc io.WriteCloser) io.WriteCloser {
 	if wc == nil {
 		return nil
@@ -377,16 +379,21 @@ func NewLockedWriteCloser(path string, wc io.WriteCloser) io.WriteCloser {
 	if dir := filepath.Dir(path); dir != "" && dir != "." {
 		lockPath = filepath.Join(dir, filepath.Base(path)+".lock")
 	}
-	return &lockedWriteCloser{
+	writer := &lockedWriteCloser{
 		lock: flock.New(lockPath),
 		wc:   wc,
 	}
+	if logger, ok := wc.(*lumberjack.Logger); ok {
+		writer.rotation = &lockedRotation{path: path, logger: logger}
+	}
+	return writer
 }
 
 type lockedWriteCloser struct {
-	mu   sync.Mutex
-	lock *flock.Flock
-	wc   io.WriteCloser
+	mu       sync.Mutex
+	lock     *flock.Flock
+	wc       io.WriteCloser
+	rotation *lockedRotation
 }
 
 func (w *lockedWriteCloser) Write(p []byte) (int, error) {
@@ -396,9 +403,22 @@ func (w *lockedWriteCloser) Write(p []byte) (int, error) {
 		return 0, &lockedWriteError{op: "lock", err: err}
 	}
 	defer func() { _ = w.lock.Unlock() }()
+	if w.rotation != nil {
+		if err := w.rotation.refresh(); err != nil {
+			return 0, err
+		}
+	}
 	n, err := w.wc.Write(p)
+	if w.rotation != nil {
+		w.rotation.lastFile = nil
+	}
 	if err != nil {
 		return n, &lockedWriteError{op: "write", err: err}
+	}
+	if w.rotation != nil {
+		if err := w.rotation.remember(); err != nil {
+			return n, err
+		}
 	}
 	return n, nil
 }
