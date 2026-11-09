@@ -42,7 +42,13 @@ type Handler struct {
 }
 
 // New returns a Handler ready to emit emails.
-func New(threshold slog.Level, cooldown time.Duration, sender Sender, to string, subjectPrefix string) *Handler {
+func New(
+	threshold slog.Level,
+	cooldown time.Duration,
+	sender Sender,
+	to string,
+	subjectPrefix string,
+) *Handler {
 	return newWithClock(threshold, cooldown, sender, to, subjectPrefix, gkclock.System)
 }
 
@@ -57,6 +63,7 @@ func newWithClock(
 	if clock == nil {
 		clock = gkclock.System
 	}
+
 	return &Handler{
 		SubjectPrefix: subjectPrefix,
 		threshold:     threshold,
@@ -86,6 +93,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 		h.shared.mu.Unlock()
 		return nil
 	}
+
 	h.shared.lastSent[r.Message] = now
 	h.shared.mu.Unlock()
 
@@ -105,9 +113,11 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	writeAttr := func(key, value string) {
 		fmt.Fprintf(&body, "  %-12s  %s\n", key, value)
 	}
+
 	for _, a := range h.attrs {
 		writeAttr(a.Key, a.Value.String())
 	}
+
 	r.Attrs(func(a slog.Attr) bool {
 		writeAttr(a.Key, a.Value.String())
 		return true
@@ -118,6 +128,7 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	if err := h.sender.Send(ctx, h.to, subject, body.String()); err != nil {
 		return &SendError{err: err}
 	}
+
 	return nil
 }
 
@@ -125,6 +136,7 @@ func (h *Handler) now() time.Time {
 	if h.clock == nil {
 		return gkclock.System.Now()
 	}
+
 	return h.clock.Now()
 }
 
@@ -148,6 +160,7 @@ func (e *SendError) Unwrap() error { return e.err }
 func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	out := *h
 	out.attrs = append(append([]slog.Attr(nil), h.attrs...), attrs...)
+
 	return &out
 }
 
@@ -160,10 +173,12 @@ func (h *Handler) WithGroup(name string) slog.Handler {
 	if name == "" {
 		return &out
 	}
+
 	if h.group == "" {
 		out.group = name
 	} else {
 		out.group = h.group + "." + name
 	}
+
 	return &out
 }

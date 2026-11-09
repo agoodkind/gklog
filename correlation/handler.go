@@ -32,6 +32,7 @@ func SlogHandler(next slog.Handler, opts HandlerOptions) slog.Handler {
 	if next == nil {
 		next = slog.DiscardHandler
 	}
+
 	return &slogHandler{
 		next:     next,
 		strict:   opts.Strict,
@@ -59,34 +60,43 @@ func (h *slogHandler) Handle(ctx context.Context, record slog.Record) error {
 		if err := h.next.Handle(ctx, record); err != nil {
 			return &handleError{err: err}
 		}
+
 		return nil
 	}
+
 	existing := h.attrKeySet(record)
 	var missing []slog.Attr
+
 	for _, attr := range corrAttrs {
 		if !existing[attr.Key] {
 			missing = append(missing, attr)
 		}
 	}
+
 	enhanced := record
 	if len(missing) > 0 {
 		enhanced = record.Clone()
 		enhanced.AddAttrs(missing...)
+
 		for _, attr := range missing {
 			existing[attr.Key] = true
 		}
 	}
+
 	if h.strict && corr.TraceID != "" {
 		for _, field := range h.required {
 			if existing[field] {
 				continue
 			}
+
 			h.emitMissingField(ctx, corr, field, record)
 		}
 	}
+
 	if err := h.next.Handle(ctx, enhanced); err != nil {
 		return &handleError{err: err}
 	}
+
 	return nil
 }
 
@@ -116,9 +126,11 @@ func (h *slogHandler) Close() error {
 	if !ok {
 		return nil
 	}
+
 	if err := closer.Close(); err != nil {
 		return &closeError{err: err}
 	}
+
 	return nil
 }
 
@@ -145,21 +157,27 @@ func (h *slogHandler) attrKeySet(record slog.Record) map[string]bool {
 	for _, attr := range h.attrs {
 		keys[attr.Key] = true
 	}
+
 	record.Attrs(func(attr slog.Attr) bool {
 		keys[attr.Key] = true
 		return true
 	})
+
 	return keys
 }
 
-func (h *slogHandler) emitMissingField(ctx context.Context, corr Context, field string, source slog.Record) {
+func (h *slogHandler) emitMissingField(
+	ctx context.Context,
+	corr Context,
+	field string,
+	source slog.Record,
+) {
 	diag := slog.NewRecord(h.clock.Now(), slog.LevelWarn, "correlation.missing_field", source.PC)
-	diag.AddAttrs(
-		slog.String("missing_field", field),
-		slog.String("source_msg", source.Message),
-	)
+	diag.AddAttrs(slog.String("missing_field", field), slog.String("source_msg", source.Message))
+
 	for _, attr := range corr.Attrs() {
 		diag.AddAttrs(attr)
 	}
+
 	_ = h.next.Handle(ctx, diag)
 }

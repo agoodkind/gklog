@@ -77,14 +77,17 @@ func NewRouter(dir string, level slog.Level, combined slog.Handler, opts RouterO
 	if fallback == "" {
 		fallback = "default"
 	}
+
 	pathForConcern := opts.PathForConcern
 	if pathForConcern == nil {
 		pathForConcern = func(concern string) string { return concern + ".jsonl" }
 	}
+
 	levelForConcern := opts.LevelForConcern
 	if levelForConcern == nil {
 		levelForConcern = func(string) slog.Level { return level }
 	}
+
 	return &Router{
 		dir:             dir,
 		level:           level,
@@ -111,12 +114,16 @@ func (router *Router) Enabled(_ context.Context, level slog.Level) bool {
 // and there is no useful place to report a logging failure from inside the
 // logger, so a sink write error is ignored here rather than propagated.
 func (router *Router) Handle(ctx context.Context, record slog.Record) error {
-	if combined := router.applyState(router.combined); combined != nil && combined.Enabled(ctx, record.Level) {
+	if combined := router.applyState(router.combined); combined != nil &&
+		combined.Enabled(ctx, record.Level) {
 		_ = combined.Handle(ctx, record.Clone())
 	}
-	if child := router.applyState(router.childFor(router.concernOf(record))); child != nil && child.Enabled(ctx, record.Level) {
+
+	if child := router.applyState(router.childFor(router.concernOf(record))); child != nil &&
+		child.Enabled(ctx, record.Level) {
 		_ = child.Handle(ctx, record.Clone())
 	}
+
 	return nil
 }
 
@@ -124,6 +131,7 @@ func (router *Router) Handle(ctx context.Context, record slog.Record) error {
 func (router *Router) WithAttrs(attrs []slog.Attr) slog.Handler {
 	clone := *router
 	clone.attrs = append(append([]slog.Attr{}, router.attrs...), attrs...)
+
 	return &clone
 }
 
@@ -132,8 +140,10 @@ func (router *Router) WithGroup(name string) slog.Handler {
 	if name == "" {
 		return router
 	}
+
 	clone := *router
 	clone.groups = append(append([]string{}, router.groups...), name)
+
 	return &clone
 }
 
@@ -141,12 +151,15 @@ func (router *Router) applyState(handler slog.Handler) slog.Handler {
 	if handler == nil {
 		return nil
 	}
+
 	for _, group := range router.groups {
 		handler = handler.WithGroup(group)
 	}
+
 	if len(router.attrs) > 0 {
 		handler = handler.WithAttrs(router.attrs)
 	}
+
 	return handler
 }
 
@@ -159,11 +172,14 @@ func (router *Router) concernOf(record slog.Record) string {
 		if value, ok := router.attrConcern(record); ok && value != "" {
 			return value
 		}
+
 		return router.fallbackConcern
 	}
+
 	if index := strings.IndexByte(record.Message, '.'); index > 0 {
 		return record.Message[:index]
 	}
+
 	return router.fallbackConcern
 }
 
@@ -173,16 +189,20 @@ func (router *Router) attrConcern(record slog.Record) (string, bool) {
 			return attr.Value.Resolve().String(), true
 		}
 	}
+
 	found := ""
 	ok := false
 	record.Attrs(func(attr slog.Attr) bool {
 		if attr.Key == router.concernAttr {
 			found = attr.Value.Resolve().String()
 			ok = true
+
 			return false
 		}
+
 		return true
 	})
+
 	return found, ok
 }
 
@@ -195,14 +215,17 @@ func (router *Router) childFor(concern string) slog.Handler {
 	if handler, found := router.children[concern]; found {
 		return handler
 	}
+
 	rel := router.pathForConcern(concern)
 	if rel == "" {
 		router.children[concern] = nil
 		return nil
 	}
+
 	path := filepath.Join(router.dir, rel)
 	_ = os.MkdirAll(filepath.Dir(path), 0o755)
 	handler := FileJSON(path, router.levelForConcern(concern), router.rotation)
 	router.children[concern] = handler
+
 	return handler
 }

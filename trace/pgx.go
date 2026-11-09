@@ -26,13 +26,20 @@ type (
 
 // TraceQueryStart records the start time and opens a child span for
 // the query.
-func (t *QueryTracer) TraceQueryStart(ctx context.Context, _ *pgx.Conn, data pgx.TraceQueryStartData) context.Context {
+func (t *QueryTracer) TraceQueryStart(
+	ctx context.Context,
+	_ *pgx.Conn,
+	data pgx.TraceQueryStartData,
+) context.Context {
 	ctx = context.WithValue(ctx, queryStartKey{}, t.now())
 	operation := queryOperation(data.SQL)
-	ctx, span := StartSpan(ctx, "db.query",
+	ctx, span := StartSpan(
+		ctx,
+		"db.query",
 		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(attribute.String("db.operation", operation)),
 	)
+
 	return context.WithValue(ctx, querySpanKey{}, span)
 }
 
@@ -54,21 +61,25 @@ func (t *QueryTracer) TraceQueryEnd(ctx context.Context, _ *pgx.Conn, data pgx.T
 		} else {
 			span.SetStatus(codes.Ok, "ok")
 		}
+
 		span.End()
 	}
 
 	l := gklog.L(ctx)
 
 	if data.Err != nil {
-		l.Error("db query",
+		l.Error(
+			"db query",
 			slog.String("sql", data.CommandTag.String()),
 			slog.Duration("latency", latency),
 			slog.Any("err", data.Err),
 		)
+
 		return
 	}
 
-	l.Debug("db query",
+	l.Debug(
+		"db query",
 		slog.String("sql", data.CommandTag.String()),
 		slog.Duration("latency", latency),
 		slog.Int64("rows", data.CommandTag.RowsAffected()),
@@ -84,5 +95,6 @@ func queryOperation(sql string) string {
 	if len(fields) == 0 {
 		return "unknown"
 	}
+
 	return strings.ToUpper(fields[0])
 }

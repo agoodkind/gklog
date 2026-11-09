@@ -12,10 +12,13 @@ func TestQueryOperation(t *testing.T) {
 	}
 
 	for sql, want := range tests {
-		t.Run(want, func(t *testing.T) {
-			if got := queryOperation(sql); got != want {
-				t.Fatalf("queryOperation(%q) = %q, want %q", sql, got, want)
-			}
-		})
+		t.Run(
+			want,
+			func(t *testing.T) {
+				if got := queryOperation(sql); got != want {
+					t.Fatalf("queryOperation(%q) = %q, want %q", sql, got, want)
+				}
+			},
+		)
 	}
 }

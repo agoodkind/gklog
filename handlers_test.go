@@ -30,6 +30,7 @@ func TestTeeHandler_Enabled(t *testing.T) {
 	if th.Enabled(context.Background(), slog.LevelDebug) {
 		t.Fatal("expected disabled at debug when both handlers reject")
 	}
+
 	th2 := NewTeeHandler(slog.NewJSONHandler(io.Discard, nil), disabled)
 	if !th2.Enabled(context.Background(), slog.LevelInfo) {
 		t.Fatal("expected enabled when one child accepts")
@@ -71,6 +72,7 @@ func TestTextHandler_Handle(t *testing.T) {
 	if err := th.Handle(context.Background(), rec); err != nil {
 		t.Fatal(err)
 	}
+
 	if !strings.Contains(b.String(), "hello") || !strings.Contains(b.String(), "x=1") {
 		t.Fatalf("output=%q", b.String())
 	}
@@ -85,11 +87,13 @@ func TestNewLockedWriteCloserSerializesChunkedWritersAcrossInstances(t *testing.
 	if err != nil {
 		t.Fatalf("newChunkedAppendWriter #1: %v", err)
 	}
+
 	defer func() { _ = w1.Close() }()
 	w2, err := newChunkedAppendWriter(logPath)
 	if err != nil {
 		t.Fatalf("newChunkedAppendWriter #2: %v", err)
 	}
+
 	defer func() { _ = w2.Close() }()
 
 	l1 := NewLockedWriteCloser(logPath, w1)
@@ -101,6 +105,7 @@ func TestNewLockedWriteCloserSerializesChunkedWritersAcrossInstances(t *testing.
 	var wg sync.WaitGroup
 	writeLines := func(prefix string, w io.Writer) {
 		defer wg.Done()
+
 		for i := 0; i < linesPerWriter; i++ {
 			line := fmt.Sprintf("{\"writer\":%q,\"seq\":%d}\n", prefix, i)
 			if _, err := w.Write([]byte(line)); err != nil {
@@ -119,10 +124,12 @@ func TestNewLockedWriteCloserSerializesChunkedWritersAcrossInstances(t *testing.
 	if err != nil {
 		t.Fatalf("ReadFile: %v", err)
 	}
+
 	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
 	if got, want := len(lines), linesPerWriter*2; got != want {
 		t.Fatalf("line count = %d want %d\n%s", got, want, string(data))
 	}
+
 	for i, line := range lines {
 		if !strings.HasPrefix(line, "{\"writer\":") || !strings.HasSuffix(line, "}") {
 			t.Fatalf("line %d malformed: %q", i, line)
@@ -139,6 +146,7 @@ func newChunkedAppendWriter(path string) (*chunkedAppendWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &chunkedAppendWriter{f: f}, nil
 }
 
@@ -147,12 +155,15 @@ func (w *chunkedAppendWriter) Write(p []byte) (int, error) {
 	if mid == 0 {
 		mid = len(p)
 	}
+
 	n1, err := w.f.Write(p[:mid])
 	if err != nil {
 		return n1, err
 	}
+
 	time.Sleep(2 * time.Millisecond)
 	n2, err := w.f.Write(p[mid:])
+
 	return n1 + n2, err
 }
 
@@ -160,6 +171,7 @@ func (w *chunkedAppendWriter) Close() error {
 	if w == nil || w.f == nil {
 		return nil
 	}
+
 	return w.f.Close()
 }
 
@@ -178,14 +190,13 @@ func (errHandler) WithGroup(string) slog.Handler { return errHandler{} }
 func TestTextHandlerPreservesWithAttrsAndGroups(t *testing.T) {
 	t.Parallel()
 	var b strings.Builder
-	logger := slog.New(NewTextHandler(&b, "[mwan]")).
-		With("trace_id", "trace-456").
-		WithGroup("rpc")
+	logger := slog.New(NewTextHandler(&b, "[mwan]")).With("trace_id", "trace-456").WithGroup("rpc")
 	logger.Info("hello", "code", "OK")
 	out := b.String()
 	if !strings.Contains(out, "trace_id=trace-456") {
 		t.Fatalf("trace_id missing: %q", out)
 	}
+
 	if !strings.Contains(out, "rpc.code=OK") {
 		t.Fatalf("group prefix missing: %q", out)
 	}
