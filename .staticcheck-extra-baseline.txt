@@ -1,4 +1,4 @@
-# staticcheck-extra: generated_at=2026-11-09T02:28:04Z
+# staticcheck-extra: generated_at=2026-11-09T05:39:18Z
 version/guard_stamped.go:3:9: filenameprefix: guard_stamped.go repeats prefix "guard"; use directory "guard"	# staticcheck-extra:first_added=2026-11-09T02:27:56Z last_seen=2026-11-09T02:27:56Z
 version/guard_stamped_test.go:3:9: filenameprefix: guard_stamped_test.go repeats prefix "guard"; use directory "guard"	# staticcheck-extra:first_added=2026-11-09T02:27:56Z last_seen=2026-11-09T02:27:56Z
 version/guard_unstamped.go:3:9: filenameprefix: guard_unstamped.go repeats prefix "guard"; use directory "guard"	# staticcheck-extra:first_added=2026-11-09T02:27:56Z last_seen=2026-11-09T02:27:56Z
