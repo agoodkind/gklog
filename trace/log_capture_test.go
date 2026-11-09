@@ -21,6 +21,7 @@ type captureHandler struct {
 
 func newCaptureHandler() *captureHandler {
 	records := []capturedLogRecord{}
+
 	return &captureHandler{
 		mu:      &sync.Mutex{},
 		records: &records,
@@ -36,6 +37,7 @@ func (h *captureHandler) Handle(_ context.Context, record slog.Record) error {
 	for _, attr := range h.attrs {
 		attrs[attr.Key] = attr.Value
 	}
+
 	record.Attrs(func(attr slog.Attr) bool {
 		attrs[attr.Key] = attr.Value
 		return true
@@ -43,11 +45,15 @@ func (h *captureHandler) Handle(_ context.Context, record slog.Record) error {
 
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	*h.records = append(*h.records, capturedLogRecord{
-		message: record.Message,
-		level:   record.Level,
-		attrs:   attrs,
-	})
+	*h.records = append(
+		*h.records,
+		capturedLogRecord{
+			message: record.Message,
+			level:   record.Level,
+			attrs:   attrs,
+		},
+	)
+
 	return nil
 }
 
@@ -66,10 +72,12 @@ func (h *captureHandler) WithGroup(string) slog.Handler {
 func (h *captureHandler) find(message string) (capturedLogRecord, bool) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+
 	for _, record := range *h.records {
 		if record.message == message {
 			return record, true
 		}
 	}
+
 	return capturedLogRecord{}, false
 }

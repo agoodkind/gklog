@@ -39,7 +39,9 @@ func opWithClock(ctx context.Context, name string, opClock gkclock.Clock) func(e
 	if opClock == nil {
 		opClock = gkclock.System
 	}
+
 	start := opClock.Now()
+
 	return func(errp *error) {
 		dur := opClock.Now().Sub(start)
 		log := gklog.L(ctx).With(
@@ -48,7 +50,9 @@ func opWithClock(ctx context.Context, name string, opClock gkclock.Clock) func(e
 		)
 		switch {
 		case errp != nil && *errp != nil:
-			log.WarnContext(ctx, name,
+			log.WarnContext(
+				ctx,
+				name,
 				slog.String("status", "failed"),
 				slog.String("err", (*errp).Error()),
 			)

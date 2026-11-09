@@ -77,10 +77,12 @@ func FromContext(ctx context.Context) Context {
 	if ctx == nil {
 		return Context{}
 	}
+
 	corr, ok := ctx.Value(contextKey{}).(Context)
 	if !ok {
 		return Context{}
 	}
+
 	return corr
 }
 
@@ -90,6 +92,7 @@ func WithContext(ctx context.Context, corr Context) context.Context {
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
 	return context.WithValue(ctx, contextKey{}, corr)
 }
 
@@ -103,9 +106,11 @@ func Ensure(ctx context.Context, requestID string) (context.Context, Context) {
 	if corr.TraceID == "" {
 		corr = New(requestID)
 	}
+
 	if corr.RequestID == "" {
 		corr.RequestID = strings.TrimSpace(requestID)
 	}
+
 	return WithContext(ctx, corr), corr
 }
 
@@ -124,15 +129,18 @@ func (c Context) Child() Context {
 	if c.TraceID == "" {
 		c.TraceID = NewTraceID()
 	}
+
 	if c.SpanID != "" {
 		c.ParentSpanID = c.SpanID
 	}
+
 	c.SpanID = NewSpanID()
 	if len(c.IdentityAttributes) > 0 {
 		copied := make([]IdentityAttribute, len(c.IdentityAttributes))
 		copy(copied, c.IdentityAttributes)
 		c.IdentityAttributes = copied
 	}
+
 	return c
 }
 
@@ -147,6 +155,7 @@ func (c Context) Traceparent() string {
 	if !c.Valid() {
 		return ""
 	}
+
 	return "00-" + string(c.TraceID) + "-" + string(c.SpanID) + "-01"
 }
 
@@ -157,15 +166,19 @@ func (c Context) Attrs() []slog.Attr {
 	if c.TraceID != "" {
 		attrs = append(attrs, slog.String("trace_id", string(c.TraceID)))
 	}
+
 	if c.SpanID != "" {
 		attrs = append(attrs, slog.String("span_id", string(c.SpanID)))
 	}
+
 	if c.ParentSpanID != "" {
 		attrs = append(attrs, slog.String("parent_span_id", string(c.ParentSpanID)))
 	}
+
 	if c.RequestID != "" {
 		attrs = append(attrs, slog.String("request_id", c.RequestID))
 	}
+
 	return appendIdentityAttributes(attrs, c.IdentityAttributes)
 }
 
@@ -181,17 +194,21 @@ func AppendAttrs(attrs []slog.Attr, corr Context) []slog.Attr {
 	if len(attrs) == 0 {
 		return corrAttrs
 	}
+
 	seen := make(map[string]bool, len(attrs))
 	for _, attr := range attrs {
 		seen[attr.Key] = true
 	}
+
 	for _, attr := range corrAttrs {
 		if seen[attr.Key] {
 			continue
 		}
+
 		attrs = append(attrs, attr)
 		seen[attr.Key] = true
 	}
+
 	return attrs
 }
 
@@ -203,13 +220,17 @@ func (c Context) WithIdentityAttributes(attrs ...IdentityAttribute) Context {
 	if len(attrs) == 0 {
 		return c
 	}
+
 	merged := append([]IdentityAttribute(nil), c.IdentityAttributes...)
+
 	for _, attr := range attrs {
 		normalized, ok := attr.normalize()
 		if !ok {
 			continue
 		}
+
 		replaced := false
+
 		for i := range merged {
 			if merged[i].Key == normalized.Key {
 				merged[i] = normalized
@@ -217,11 +238,14 @@ func (c Context) WithIdentityAttributes(attrs ...IdentityAttribute) Context {
 				break
 			}
 		}
+
 		if !replaced {
 			merged = append(merged, normalized)
 		}
 	}
+
 	c.IdentityAttributes = merged
+
 	return c
 }
 
@@ -232,11 +256,13 @@ func (c Context) IdentityAttributeValue(key string) string {
 	if key == "" {
 		return ""
 	}
+
 	for _, attr := range c.IdentityAttributes {
 		if attr.Key == key {
 			return attr.Value
 		}
 	}
+
 	return ""
 }
 
@@ -246,6 +272,7 @@ func (a IdentityAttribute) normalize() (IdentityAttribute, bool) {
 	if key == "" || value == "" {
 		return IdentityAttribute{}, false
 	}
+
 	return IdentityAttribute{Key: key, Value: value}, true
 }
 
@@ -253,21 +280,26 @@ func appendIdentityAttributes(attrs []slog.Attr, identityAttrs []IdentityAttribu
 	if len(identityAttrs) == 0 {
 		return attrs
 	}
+
 	seen := make(map[string]bool, len(attrs)+len(identityAttrs))
 	for _, attr := range attrs {
 		seen[attr.Key] = true
 	}
+
 	for _, identityAttr := range identityAttrs {
 		normalized, ok := identityAttr.normalize()
 		if !ok {
 			continue
 		}
+
 		if seen[normalized.Key] {
 			continue
 		}
+
 		attrs = append(attrs, slog.String(normalized.Key, normalized.Value))
 		seen[normalized.Key] = true
 	}
+
 	return attrs
 }
 
@@ -281,21 +313,28 @@ func FromHTTPHeader(header http.Header, requestID string) Context {
 	if id := strings.TrimSpace(header.Get(HeaderRequestID)); id != "" {
 		corr.RequestID = id
 	}
+
 	if traceID, spanID, ok := ParseTraceparent(header.Get(HeaderTraceparent)); ok {
 		corr.TraceID = traceID
 		corr.ParentSpanID = spanID
 		corr.SpanID = NewSpanID()
 	}
+
 	if traceID := strings.TrimSpace(header.Get(HeaderTraceID)); validTraceID(traceID) {
 		corr.TraceID = TraceID(traceID)
 	}
+
 	if spanID := strings.TrimSpace(header.Get(HeaderSpanID)); validSpanID(spanID) {
 		corr.ParentSpanID = SpanID(spanID)
 		corr.SpanID = NewSpanID()
 	}
-	if parentSpanID := strings.TrimSpace(header.Get(HeaderParentSpanID)); validSpanID(parentSpanID) {
+
+	if parentSpanID := strings.TrimSpace(header.Get(HeaderParentSpanID)); validSpanID(
+		parentSpanID,
+	) {
 		corr.ParentSpanID = SpanID(parentSpanID)
 	}
+
 	return corr
 }
 
@@ -305,18 +344,23 @@ func (c Context) SetHTTPHeaders(header http.Header) {
 	if header == nil {
 		return
 	}
+
 	if c.RequestID != "" {
 		header.Set(HeaderRequestID, c.RequestID)
 	}
+
 	if c.TraceID != "" {
 		header.Set(HeaderTraceID, string(c.TraceID))
 	}
+
 	if c.SpanID != "" {
 		header.Set(HeaderSpanID, string(c.SpanID))
 	}
+
 	if c.ParentSpanID != "" {
 		header.Set(HeaderParentSpanID, string(c.ParentSpanID))
 	}
+
 	if traceparent := c.Traceparent(); traceparent != "" {
 		header.Set(HeaderTraceparent, traceparent)
 	}
@@ -327,6 +371,7 @@ func (c Context) SetHTTPHeaders(header http.Header) {
 func (c Context) HTTPHeaders() http.Header {
 	header := http.Header{}
 	c.SetHTTPHeaders(header)
+
 	return header
 }
 
@@ -337,6 +382,7 @@ func FromIncomingMetadata(ctx context.Context) Context {
 	if !ok {
 		return New("")
 	}
+
 	return fromMetadata(md)
 }
 
@@ -348,6 +394,7 @@ func NewOutgoingContext(ctx context.Context) context.Context {
 	if corr.TraceID == "" {
 		ctx, corr = Ensure(ctx, "")
 	}
+
 	return metadata.NewOutgoingContext(ctx, corr.Metadata())
 }
 
@@ -362,6 +409,7 @@ func (c Context) Metadata() metadata.MD {
 	if traceparent := c.Traceparent(); traceparent != "" {
 		setMetadata(md, HeaderTraceparent, traceparent)
 	}
+
 	return md
 }
 
@@ -373,12 +421,15 @@ func ParseTraceparent(raw string) (TraceID, SpanID, bool) {
 	if len(parts) != 4 {
 		return "", "", false
 	}
+
 	if parts[0] != "00" {
 		return "", "", false
 	}
+
 	if !validTraceID(parts[1]) || !validSpanID(parts[2]) {
 		return "", "", false
 	}
+
 	return TraceID(parts[1]), SpanID(parts[2]), true
 }
 
@@ -397,6 +448,7 @@ func randomHex(byteCount int) string {
 	if _, err := rand.Read(buf); err != nil {
 		return strings.Repeat("0", byteCount*2)
 	}
+
 	return hex.EncodeToString(buf)
 }
 
@@ -407,16 +459,20 @@ func fromMetadata(md metadata.MD) Context {
 		corr.ParentSpanID = spanID
 		corr.SpanID = NewSpanID()
 	}
+
 	if traceID := firstMetadata(md, HeaderTraceID); validTraceID(traceID) {
 		corr.TraceID = TraceID(traceID)
 	}
+
 	if spanID := firstMetadata(md, HeaderSpanID); validSpanID(spanID) {
 		corr.ParentSpanID = SpanID(spanID)
 		corr.SpanID = NewSpanID()
 	}
+
 	if parentSpanID := firstMetadata(md, HeaderParentSpanID); validSpanID(parentSpanID) {
 		corr.ParentSpanID = SpanID(parentSpanID)
 	}
+
 	return corr
 }
 
@@ -425,9 +481,11 @@ func firstMetadata(md metadata.MD, key string) string {
 	if len(values) == 0 {
 		values = md.Get(key)
 	}
+
 	if len(values) == 0 {
 		return ""
 	}
+
 	return strings.TrimSpace(values[0])
 }
 
@@ -436,6 +494,7 @@ func setMetadata(md metadata.MD, key, value string) {
 	if value == "" {
 		return
 	}
+
 	md.Set(strings.ToLower(key), value)
 }
 
@@ -451,11 +510,14 @@ func validHex(value string, length int) bool {
 	if len(value) != length {
 		return false
 	}
+
 	for _, r := range value {
 		if (r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') {
 			continue
 		}
+
 		return false
 	}
+
 	return true
 }

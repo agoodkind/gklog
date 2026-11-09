@@ -29,6 +29,7 @@ func requestLoggerWithClock(next http.Handler, requestClock gkclock.Clock) http.
 	if requestClock == nil {
 		requestClock = gkclock.System
 	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := requestClock.Now()
 
@@ -52,7 +53,9 @@ func requestLoggerWithClock(next http.Handler, requestClock gkclock.Clock) http.
 		)
 		defer span.End()
 
-		l := LoggerWithContext(ctx, slog.Default(),
+		l := LoggerWithContext(
+			ctx,
+			slog.Default(),
 			slog.String("method", r.Method),
 			slog.String("path", r.URL.Path),
 			slog.String("remote_addr", r.RemoteAddr),
@@ -75,7 +78,9 @@ func requestLoggerWithClock(next http.Handler, requestClock gkclock.Clock) http.
 			span.SetStatus(codes.Error, http.StatusText(rw.status))
 		}
 
-		l.InfoContext(ctx, "request",
+		l.InfoContext(
+			ctx,
+			"request",
 			slog.Int("status", rw.status),
 			slog.Int64("bytes", rw.bytes),
 			slog.Duration("latency", latency),
@@ -96,12 +101,13 @@ func (rw *responseWriter) WriteHeader(status int) {
 }
 
 func (rw *responseWriter) Write(b []byte) (int, error) {
-	n, err := rw.ResponseWriter.Write(b)
-	rw.bytes += int64(n)
+	writtenBytes, err := rw.ResponseWriter.Write(b)
+	rw.bytes += int64(writtenBytes)
 	if err != nil {
-		return n, &responseWriteError{err: err}
+		return writtenBytes, &responseWriteError{err: err}
 	}
-	return n, nil
+
+	return writtenBytes, nil
 }
 
 // responseWriteError wraps the underlying [net/http.ResponseWriter]

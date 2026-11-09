@@ -57,6 +57,7 @@ func Setup(opts Options) (io.Closer, error) {
 	if name == "" {
 		name = defaultInstrumentationName
 	}
+
 	instrumentationName.Store(name)
 
 	resourceAttrs, err := buildResource(opts)
@@ -73,15 +74,18 @@ func Setup(opts Options) (io.Closer, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		providerOptions = append(providerOptions, sdktrace.WithBatcher(exporter))
 	}
 
 	provider := sdktrace.NewTracerProvider(providerOptions...)
 	otel.SetTracerProvider(provider)
-	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
-		propagation.TraceContext{},
-		propagation.Baggage{},
-	))
+	otel.SetTextMapPropagator(
+		propagation.NewCompositeTextMapPropagator(
+			propagation.TraceContext{},
+			propagation.Baggage{},
+		),
+	)
 
 	return traceCloser{shutdowns: []func(context.Context) error{provider.Shutdown}}, nil
 }
@@ -92,6 +96,7 @@ func Tracer() trace.Tracer {
 	if v, ok := instrumentationName.Load().(string); ok && v != "" {
 		name = v
 	}
+
 	return otel.Tracer(name)
 }
 
@@ -100,7 +105,11 @@ func Tracer() trace.Tracer {
 // when the operation completes. This is a thin pass-through to
 // [Tracer].Start so callers do not have to track the active
 // instrumentation name themselves.
-func StartSpan(ctx context.Context, name string, opts ...trace.SpanStartOption) (context.Context, trace.Span) {
+func StartSpan(
+	ctx context.Context,
+	name string,
+	opts ...trace.SpanStartOption,
+) (context.Context, trace.Span) {
 	return Tracer().Start(ctx, name, opts...)
 }
 
@@ -109,12 +118,15 @@ func buildResource(opts Options) (*resource.Resource, error) {
 	if name := strings.TrimSpace(opts.ServiceName); name != "" {
 		attrs = append(attrs, semconv.ServiceName(name))
 	}
+
 	if ns := strings.TrimSpace(opts.ServiceNamespace); ns != "" {
 		attrs = append(attrs, attribute.String("service.namespace", ns))
 	}
+
 	if len(attrs) == 0 {
 		return resource.Default(), nil
 	}
+
 	merged, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(semconv.SchemaURL, attrs...),
@@ -122,6 +134,7 @@ func buildResource(opts Options) (*resource.Resource, error) {
 	if err != nil {
 		return nil, &otelSetupError{op: "merge resource", err: err}
 	}
+
 	return merged, nil
 }
 
@@ -137,11 +150,14 @@ func newTraceExporter(endpoint string) (*otlptrace.Exporter, error) {
 		}
 	}
 
-	exporter, err := otlptracegrpc.New(ctx,
-		append(options, otlptracegrpc.WithEndpoint(endpoint))...)
+	exporter, err := otlptracegrpc.New(
+		ctx,
+		append(options, otlptracegrpc.WithEndpoint(endpoint))...,
+	)
 	if err != nil {
 		return nil, &otelSetupError{op: "otlp exporter", err: err}
 	}
+
 	return exporter, nil
 }
 
@@ -167,14 +183,17 @@ func (t traceCloser) Close() error {
 	defer cancel()
 
 	var errs []error
+
 	for _, shutdown := range slices.Backward(t.shutdowns) {
 		if err := shutdown(ctx); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if len(errs) == 0 {
 		return nil
 	}
+
 	return &shutdownError{errs: errs}
 }
 

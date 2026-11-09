@@ -21,6 +21,7 @@ func TestRequestLoggerPreservesInboundRequestIDAndTraceContext(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup tracing: %v", err)
 	}
+
 	t.Cleanup(func() {
 		if err := closer.Close(); err != nil {
 			t.Fatalf("close tracing: %v", err)
@@ -34,20 +35,24 @@ func TestRequestLoggerPreservesInboundRequestIDAndTraceContext(t *testing.T) {
 		slog.SetDefault(previousLogger)
 	})
 
-	handler := RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if got := RequestID(r.Context()); got != testRequestID {
-			t.Fatalf("request id = %q, want %q", got, testRequestID)
-		}
-		if got := IDFromContext(r.Context()); got != testTraceID {
-			t.Fatalf("trace id = %q, want %q", got, testTraceID)
-		}
-		if got := SpanIDFromContext(r.Context()); got == "" {
-			t.Fatal("span id is empty")
-		}
+	handler := RequestLogger(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if got := RequestID(r.Context()); got != testRequestID {
+				t.Fatalf("request id = %q, want %q", got, testRequestID)
+			}
 
-		gklog.L(r.Context()).InfoContext(r.Context(), "handler.log")
-		w.WriteHeader(http.StatusAccepted)
-	}))
+			if got := IDFromContext(r.Context()); got != testTraceID {
+				t.Fatalf("trace id = %q, want %q", got, testTraceID)
+			}
+
+			if got := SpanIDFromContext(r.Context()); got == "" {
+				t.Fatal("span id is empty")
+			}
+
+			gklog.L(r.Context()).InfoContext(r.Context(), "handler.log")
+			w.WriteHeader(http.StatusAccepted)
+		}),
+	)
 
 	request := httptest.NewRequest(http.MethodPost, "/telemetry", nil)
 	request.Header.Set(RequestIDHeader, testRequestID)
@@ -59,6 +64,7 @@ func TestRequestLoggerPreservesInboundRequestIDAndTraceContext(t *testing.T) {
 	if got := response.Header().Get(RequestIDHeader); got != testRequestID {
 		t.Fatalf("response request id = %q, want %q", got, testRequestID)
 	}
+
 	if response.Code != http.StatusAccepted {
 		t.Fatalf("response status = %d, want %d", response.Code, http.StatusAccepted)
 	}
@@ -67,12 +73,15 @@ func TestRequestLoggerPreservesInboundRequestIDAndTraceContext(t *testing.T) {
 	if !ok {
 		t.Fatal("handler log was not captured")
 	}
+
 	if got := record.attrs["request_id"].String(); got != testRequestID {
 		t.Fatalf("logged request_id = %q, want %q", got, testRequestID)
 	}
+
 	if got := record.attrs["trace_id"].String(); got != testTraceID {
 		t.Fatalf("logged trace_id = %q, want %q", got, testTraceID)
 	}
+
 	if got := record.attrs["span_id"].String(); got == "" {
 		t.Fatal("logged span_id is empty")
 	}
@@ -83,14 +92,17 @@ func TestRequestLoggerGeneratesRequestIDWhenAbsent(t *testing.T) {
 	if err != nil {
 		t.Fatalf("setup tracing: %v", err)
 	}
+
 	t.Cleanup(func() {
 		_ = closer.Close()
 	})
 
 	var captured string
-	handler := RequestLogger(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
-		captured = RequestID(r.Context())
-	}))
+	handler := RequestLogger(
+		http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+			captured = RequestID(r.Context())
+		}),
+	)
 
 	request := httptest.NewRequest(http.MethodGet, "/x", nil)
 	response := httptest.NewRecorder()
@@ -99,6 +111,7 @@ func TestRequestLoggerGeneratesRequestIDWhenAbsent(t *testing.T) {
 	if captured == "" {
 		t.Fatal("expected generated request id, got empty")
 	}
+
 	if got := response.Header().Get(RequestIDHeader); got != captured {
 		t.Fatalf("response request id = %q, want %q", got, captured)
 	}

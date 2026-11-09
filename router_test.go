@@ -17,7 +17,9 @@ func TestRouterWritesPerConcernFiles(t *testing.T) {
 
 	dir := t.TempDir()
 	combined := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})
-	logger := slog.New(NewRouter(dir, slog.LevelInfo, combined, RouterOptions{FallbackConcern: "core"}))
+	logger := slog.New(
+		NewRouter(dir, slog.LevelInfo, combined, RouterOptions{FallbackConcern: "core"}),
+	)
 
 	logger.Info("semantic.reindex", "path", "a.go")
 	logger.Info("mcp.tool.started", "tool", "search_code")
@@ -33,6 +35,7 @@ func TestRouterWritesPerConcernFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("reading %s: %v", file, err)
 		}
+
 		if !strings.Contains(string(data), want) {
 			t.Fatalf("%s missing %q; got %q", file, want, string(data))
 		}
@@ -42,6 +45,7 @@ func TestRouterWritesPerConcernFiles(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading semantic.jsonl: %v", err)
 	}
+
 	if strings.Contains(string(semanticData), "mcp.tool.started") {
 		t.Fatalf("semantic.jsonl leaked an mcp record: %q", string(semanticData))
 	}
@@ -57,6 +61,7 @@ func TestRouterEnabledRespectsLevel(t *testing.T) {
 	if router.Enabled(context.Background(), slog.LevelInfo) {
 		t.Fatal("Enabled(Info) = true, want false at Warn threshold")
 	}
+
 	if !router.Enabled(context.Background(), slog.LevelError) {
 		t.Fatal("Enabled(Error) = false, want true at Warn threshold")
 	}
@@ -77,6 +82,7 @@ func TestRouterDefaultsFallbackConcern(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading default.jsonl: %v", err)
 	}
+
 	if !strings.Contains(string(data), "plain message") {
 		t.Fatalf("default.jsonl missing record; got %q", string(data))
 	}
@@ -90,31 +96,50 @@ func TestRouterConcernFromAttrWritesNestedPath(t *testing.T) {
 
 	dir := t.TempDir()
 	combined := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})
-	router := NewRouter(dir, slog.LevelInfo, combined, RouterOptions{
-		ConcernAttr: "concern",
-		PathForConcern: func(concern string) string {
-			return filepath.Join(strings.Split(concern, ".")...) + ".jsonl"
+	router := NewRouter(
+		dir,
+		slog.LevelInfo,
+		combined,
+		RouterOptions{
+			ConcernAttr: "concern",
+			PathForConcern: func(concern string) string {
+				return filepath.Join(strings.Split(concern, ".")...) + ".jsonl"
+			},
 		},
-	})
+	)
 	logger := slog.New(router)
 
-	logger.Info("mitm.proxy.forwarded", "concern", "providers.mitm.wire", "host", "api.anthropic.com")
-	logger.With("concern", "providers.mitm.cursor").Info("mitm.proxy.forwarded", "host", "api2.cursor.sh")
+	logger.Info(
+		"mitm.proxy.forwarded",
+		"concern",
+		"providers.mitm.wire",
+		"host",
+		"api.anthropic.com",
+	)
+	logger.With("concern", "providers.mitm.cursor").Info(
+		"mitm.proxy.forwarded",
+		"host",
+		"api2.cursor.sh",
+	)
 
 	wire, err := os.ReadFile(filepath.Join(dir, "providers", "mitm", "wire.jsonl"))
 	if err != nil {
 		t.Fatalf("reading per-record nested concern file: %v", err)
 	}
+
 	if !strings.Contains(string(wire), "api.anthropic.com") {
 		t.Fatalf("wire.jsonl missing record; got %q", string(wire))
 	}
+
 	cursor, err := os.ReadFile(filepath.Join(dir, "providers", "mitm", "cursor.jsonl"))
 	if err != nil {
 		t.Fatalf("reading WithAttrs nested concern file: %v", err)
 	}
+
 	if !strings.Contains(string(cursor), "api2.cursor.sh") {
 		t.Fatalf("cursor.jsonl missing record; got %q", string(cursor))
 	}
+
 	if strings.Contains(string(wire), "api2.cursor.sh") {
 		t.Fatalf("wire.jsonl leaked a cursor record; got %q", string(wire))
 	}
@@ -128,16 +153,22 @@ func TestRouterPathForConcernEmptyRoutesCombinedOnly(t *testing.T) {
 
 	dir := t.TempDir()
 	combined := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelInfo})
-	router := NewRouter(dir, slog.LevelInfo, combined, RouterOptions{
-		ConcernAttr:    "concern",
-		PathForConcern: func(string) string { return "" },
-	})
+	router := NewRouter(
+		dir,
+		slog.LevelInfo,
+		combined,
+		RouterOptions{
+			ConcernAttr:    "concern",
+			PathForConcern: func(string) string { return "" },
+		},
+	)
 	slog.New(router).Info("x.y", "concern", "muted")
 
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		t.Fatalf("readdir: %v", err)
 	}
+
 	if len(entries) != 0 {
 		t.Fatalf("expected no per-concern files, got %d", len(entries))
 	}
@@ -150,15 +181,21 @@ func TestRouterLevelForConcernRaisesThreshold(t *testing.T) {
 
 	dir := t.TempDir()
 	combined := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
-	router := NewRouter(dir, slog.LevelDebug, combined, RouterOptions{
-		ConcernAttr: "concern",
-		LevelForConcern: func(concern string) slog.Level {
-			if concern == "quiet" {
-				return slog.LevelWarn
-			}
-			return slog.LevelDebug
+	router := NewRouter(
+		dir,
+		slog.LevelDebug,
+		combined,
+		RouterOptions{
+			ConcernAttr: "concern",
+			LevelForConcern: func(concern string) slog.Level {
+				if concern == "quiet" {
+					return slog.LevelWarn
+				}
+
+				return slog.LevelDebug
+			},
 		},
-	})
+	)
 	logger := slog.New(router)
 
 	logger.Info("a.b", "concern", "quiet") // below quiet's Warn threshold -> not in file
@@ -168,7 +205,12 @@ func TestRouterLevelForConcernRaisesThreshold(t *testing.T) {
 	if err != nil {
 		t.Fatalf("reading quiet.jsonl: %v", err)
 	}
+
 	if got := strings.Count(string(data), "\n"); got != 1 {
-		t.Fatalf("quiet.jsonl should hold exactly the Warn record, got %d lines: %q", got, string(data))
+		t.Fatalf(
+			"quiet.jsonl should hold exactly the Warn record, got %d lines: %q",
+			got,
+			string(data),
+		)
 	}
 }

@@ -21,11 +21,14 @@ func MarkerLine(pairs ...string) string {
 		if key == "" || value == "" {
 			continue
 		}
+
 		fields = append(fields, key+"="+value)
 	}
+
 	if len(fields) == 0 {
 		return ""
 	}
+
 	return HeaderMarker + strings.Join(fields, " ")
 }
 
@@ -35,13 +38,19 @@ func MarkerLine(pairs ...string) string {
 // "" when nothing is present.
 func HeaderLine(c Context, extra ...string) string {
 	pairs := make([]string, 0, 8+len(extra))
-	pairs = append(pairs,
-		"trace_id", string(c.TraceID),
-		"span_id", string(c.SpanID),
-		"parent_span_id", string(c.ParentSpanID),
-		"request_id", c.RequestID,
+	pairs = append(
+		pairs,
+		"trace_id",
+		string(c.TraceID),
+		"span_id",
+		string(c.SpanID),
+		"parent_span_id",
+		string(c.ParentSpanID),
+		"request_id",
+		c.RequestID,
 	)
 	pairs = append(pairs, extra...)
+
 	return MarkerLine(pairs...)
 }
 

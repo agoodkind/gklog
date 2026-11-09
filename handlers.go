@@ -49,6 +49,7 @@ func FileText(path, label string, rot RotationConfig) slog.Handler {
 func FileJSON(path string, level slog.Level, rot RotationConfig) slog.Handler {
 	w := NewLockedWriteCloser(path, NewLumberjackWriterWithConfig(path, rot))
 	inner := slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level})
+
 	return &closableHandler{Handler: inner, closer: w}
 }
 
@@ -57,7 +58,13 @@ func FileJSON(path string, level slog.Level, rot RotationConfig) slog.Handler {
 // to prevent floods during sustained outages. subjectPrefix is
 // prepended to every outgoing subject (e.g. "[mwan]"); empty for
 // none.
-func EmailHandler(threshold slog.Level, cooldown time.Duration, sender emaillog.Sender, to, subjectPrefix string) slog.Handler {
+func EmailHandler(
+	threshold slog.Level,
+	cooldown time.Duration,
+	sender emaillog.Sender,
+	to string,
+	subjectPrefix string,
+) slog.Handler {
 	return emaillog.New(threshold, cooldown, sender, to, subjectPrefix)
 }
 
@@ -75,10 +82,12 @@ func (h *closableHandler) Close() error {
 	if h.closer == nil {
 		return nil
 	}
+
 	err := h.closer.Close()
 	if err == nil {
 		return nil
 	}
+
 	return &handlerCloseError{err: err}
 }
 
@@ -122,6 +131,7 @@ func (t *TeeHandler) Enabled(ctx context.Context, level slog.Level) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -130,17 +140,21 @@ func (t *TeeHandler) Enabled(ctx context.Context, level slog.Level) bool {
 // dispatch to the rest. Returns nil when every enabled child succeeded.
 func (t *TeeHandler) Handle(ctx context.Context, r slog.Record) error {
 	var errs []error
+
 	for _, h := range t.children {
 		if !h.Enabled(ctx, r.Level) {
 			continue
 		}
+
 		if err := h.Handle(ctx, r.Clone()); err != nil {
 			errs = append(errs, err)
 		}
 	}
+
 	if len(errs) == 0 {
 		return nil
 	}
+
 	return &TeeChildError{Errs: errs}
 }
 
@@ -157,6 +171,7 @@ func (e *TeeChildError) Error() string {
 	for _, err := range e.Errs {
 		parts = append(parts, err.Error())
 	}
+
 	return "tee handler: " + strings.Join(parts, "; ")
 }
 
@@ -169,6 +184,7 @@ func (t *TeeHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	for i, h := range t.children {
 		children[i] = h.WithAttrs(attrs)
 	}
+
 	return &TeeHandler{children: children}
 }
 
@@ -179,6 +195,7 @@ func (t *TeeHandler) WithGroup(name string) slog.Handler {
 	for i, h := range t.children {
 		children[i] = h.WithGroup(name)
 	}
+
 	return &TeeHandler{children: children}
 }
 
@@ -221,6 +238,7 @@ func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 		b.WriteString(h.label)
 		b.WriteByte(' ')
 	}
+
 	b.WriteString(r.Level.String())
 	b.WriteByte(' ')
 	b.WriteString(r.Message)
@@ -235,6 +253,7 @@ func (h *TextHandler) Handle(_ context.Context, r slog.Record) error {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	_, _ = h.w.Write([]byte(line))
+
 	return nil
 }
 
@@ -244,6 +263,7 @@ func (h *TextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 	if len(attrs) == 0 {
 		return h
 	}
+
 	out := &TextHandler{
 		mu:     h.mu,
 		w:      h.w,
@@ -251,6 +271,7 @@ func (h *TextHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
 		attrs:  append(append([]slog.Attr(nil), h.attrs...), textWrapGroups(h.groups, attrs)...),
 		groups: append([]string(nil), h.groups...),
 	}
+
 	return out
 }
 
@@ -260,6 +281,7 @@ func (h *TextHandler) WithGroup(name string) slog.Handler {
 	if name == "" {
 		return h
 	}
+
 	out := &TextHandler{
 		mu:     h.mu,
 		w:      h.w,
@@ -267,6 +289,7 @@ func (h *TextHandler) WithGroup(name string) slog.Handler {
 		attrs:  append([]slog.Attr(nil), h.attrs...),
 		groups: append(append([]string(nil), h.groups...), name),
 	}
+
 	return out
 }
 
@@ -281,18 +304,23 @@ func textWriteAttr(b *strings.Builder, prefix string, a slog.Attr) {
 	if a.Equal(slog.Attr{}) {
 		return
 	}
+
 	if a.Value.Kind() == slog.KindGroup {
 		nested := a.Key
 		if prefix != "" {
 			nested = prefix + "." + a.Key
 		}
+
 		textWriteAttrs(b, nested, a.Value.Group())
+
 		return
 	}
+
 	key := a.Key
 	if prefix != "" {
 		key = prefix + "." + key
 	}
+
 	b.WriteByte(' ')
 	b.WriteString(key)
 	b.WriteByte('=')
@@ -303,13 +331,18 @@ func textWrapGroups(groups []string, attrs []slog.Attr) []slog.Attr {
 	if len(groups) == 0 {
 		return attrs
 	}
+
 	wrapped := append([]slog.Attr(nil), attrs...)
+
 	for _, group := range slices.Backward(groups) {
-		wrapped = []slog.Attr{{
-			Key:   group,
-			Value: slog.GroupValue(wrapped...),
-		}}
+		wrapped = []slog.Attr{
+			{
+				Key:   group,
+				Value: slog.GroupValue(wrapped...),
+			},
+		}
 	}
+
 	return wrapped
 }
 
@@ -317,6 +350,7 @@ func textGroupPrefix(groups []string) string {
 	if len(groups) == 0 {
 		return ""
 	}
+
 	return strings.Join(groups, ".")
 }
 
@@ -346,14 +380,17 @@ func NewLumberjackWriterWithConfig(path string, rc RotationConfig) *lumberjack.L
 	if maxSize <= 0 {
 		maxSize = 5
 	}
+
 	compress := true
 	if rc.Compress != nil {
 		compress = *rc.Compress
 	}
+
 	localTime := true
 	if rc.LocalTime != nil {
 		localTime = *rc.LocalTime
 	}
+
 	return &lumberjack.Logger{
 		Filename:   path,
 		MaxSize:    maxSize,
@@ -375,10 +412,12 @@ func NewLockedWriteCloser(path string, wc io.WriteCloser) io.WriteCloser {
 	if wc == nil {
 		return nil
 	}
+
 	lockPath := path + ".lock"
 	if dir := filepath.Dir(path); dir != "" && dir != "." {
 		lockPath = filepath.Join(dir, filepath.Base(path)+".lock")
 	}
+
 	writer := &lockedWriteCloser{
 		lock: flock.New(lockPath),
 		wc:   wc,
@@ -386,6 +425,7 @@ func NewLockedWriteCloser(path string, wc io.WriteCloser) io.WriteCloser {
 	if logger, ok := wc.(*lumberjack.Logger); ok {
 		writer.rotation = &lockedRotation{path: path, logger: logger}
 	}
+
 	return writer
 }
 
@@ -402,24 +442,29 @@ func (w *lockedWriteCloser) Write(p []byte) (int, error) {
 	if err := w.lock.Lock(); err != nil {
 		return 0, &lockedWriteError{op: "lock", err: err}
 	}
+
 	defer func() { _ = w.lock.Unlock() }()
 	if w.rotation != nil {
 		if err := w.rotation.refresh(); err != nil {
 			return 0, err
 		}
 	}
+
 	n, err := w.wc.Write(p)
 	if w.rotation != nil {
 		w.rotation.lastFile = nil
 	}
+
 	if err != nil {
 		return n, &lockedWriteError{op: "write", err: err}
 	}
+
 	if w.rotation != nil {
 		if err := w.rotation.remember(); err != nil {
 			return n, err
 		}
 	}
+
 	return n, nil
 }
 
@@ -429,9 +474,11 @@ func (w *lockedWriteCloser) Close() error {
 	if w.wc == nil {
 		return nil
 	}
+
 	if err := w.wc.Close(); err != nil {
 		return &lockedWriteError{op: "close", err: err}
 	}
+
 	return nil
 }
 
