@@ -41,6 +41,7 @@ func IDFromContext(ctx context.Context) string {
 	if !spanContext.IsValid() {
 		return ""
 	}
+
 	return spanContext.TraceID().String()
 }
 
@@ -54,6 +55,7 @@ func SpanIDFromContext(ctx context.Context) string {
 	if !spanContext.IsValid() {
 		return ""
 	}
+
 	return spanContext.SpanID().String()
 }
 
@@ -72,16 +74,21 @@ func LoggerWithContext(ctx context.Context, base *slog.Logger, attrs ...slog.Att
 	if requestID := RequestID(ctx); requestID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("request_id", requestID))
 	}
+
 	if traceID := IDFromContext(ctx); traceID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("trace_id", traceID))
 	}
+
 	if spanID := SpanIDFromContext(ctx); spanID != "" {
 		loggerAttrs = append(loggerAttrs, slog.String("span_id", spanID))
 	}
+
 	loggerAttrs = append(loggerAttrs, attrs...)
+
 	args := make([]any, 0, len(loggerAttrs))
 	for _, attr := range loggerAttrs {
 		args = append(args, attr)
 	}
+
 	return base.With(args...)
 }

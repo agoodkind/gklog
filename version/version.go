@@ -50,6 +50,7 @@ func BuildHash() string {
 	buildHashOnce.Do(func() {
 		buildHashValue = computeBuildHash()
 	})
+
 	return buildHashValue
 }
 
@@ -58,15 +59,18 @@ func computeBuildHash() string {
 	if err != nil {
 		return "unknown"
 	}
+
 	f, err := os.Open(exe)
 	if err != nil {
 		return "unknown"
 	}
+
 	defer func() { _ = f.Close() }()
 	hash := sha256.New()
 	if _, err := io.Copy(hash, f); err != nil {
 		return "unknown"
 	}
+
 	return hex.EncodeToString(hash.Sum(nil))[:12]
 }
 
@@ -78,15 +82,19 @@ func String() string {
 	if commit != "unknown" && len(commit) > 12 {
 		commit = commit[:12]
 	}
+
 	out := commit
 	if Version != "unknown" && Version != "" {
 		out = Version + " " + out
 	}
+
 	if Dirty == "true" {
 		out += "+dirty"
 	}
+
 	if BuildTime != "unknown" {
 		out += " built " + BuildTime
 	}
+
 	return out
 }

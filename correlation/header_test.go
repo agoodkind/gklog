@@ -28,6 +28,7 @@ func TestMarkerLineEmptyWhenNothing(t *testing.T) {
 	if got := MarkerLine("span_id", "", "job_id", ""); got != "" {
 		t.Fatalf("MarkerLine = %q, want empty", got)
 	}
+
 	if got := MarkerLine(); got != "" {
 		t.Fatalf("MarkerLine() = %q, want empty", got)
 	}
@@ -82,6 +83,7 @@ func TestMetaJSONOrderAndOmitEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("marshal Meta: %v", err)
 	}
+
 	want := `{"request_id":"req-456","trace_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","span_id":"bbbbbbbbbbbbbbbb"}`
 	if string(encoded) != want {
 		t.Fatalf("Meta JSON = %s, want %s", encoded, want)
@@ -93,6 +95,7 @@ func TestMetaEmpty(t *testing.T) {
 	if !(Context{}).Meta().Empty() {
 		t.Fatal("zero Context Meta should be Empty")
 	}
+
 	if (Context{TraceID: "x"}).Meta().Empty() {
 		t.Fatal("Meta with a trace id should not be Empty")
 	}

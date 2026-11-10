@@ -20,9 +20,11 @@ func WithLogger(ctx context.Context, log *slog.Logger) context.Context {
 	if log == nil {
 		return ctx
 	}
+
 	if ctx == nil {
 		ctx = context.Background()
 	}
+
 	return context.WithValue(ctx, contextLoggerKey{}, log)
 }
 
@@ -33,10 +35,12 @@ func LoggerFromContext(ctx context.Context) *slog.Logger {
 	if ctx == nil {
 		return slog.Default()
 	}
+
 	v, ok := ctx.Value(contextLoggerKey{}).(*slog.Logger)
 	if !ok || v == nil {
 		return slog.Default()
 	}
+
 	return v
 }
 

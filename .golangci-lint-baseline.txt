@@ -1,4 +1,52 @@
-# golangci-lint: generated_at=2026-11-09T15:50:47Z
+# golangci-lint: generated_at=2026-11-10T09:54:17Z
+correlation/correlation.go:121:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:165:32: Magic number: 4, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:238:5: break with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:349:14: use "X-Request-ID" instead of "X-Request-Id" (canonicalheader)	# golangci-lint:first_added=2026-11-08T23:04:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:404:2: variable name 'md' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:421:19: Magic number: 4, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:506:61: Magic number: 16, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:443:26: Magic number: 8, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:449:40: Magic number: 2, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:492:18: parameter name 'md' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/correlation.go:502:61: Magic number: 32, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/handler.go:163:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/header.go:6:1: godoc line is too long (78 > 77) (godoclint)	# golangci-lint:first_added=2026-11-08T23:03:37Z last_seen=2026-11-10T09:54:17Z
+correlation/header.go:17:41: Magic number: 2, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/header.go:39:17: parameter name 'c' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+correlation/header.go:40:29: Magic number: 8, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+emaillog/handler.go:94:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+emaillog/handler.go:135:1: unexported method "now" for struct "Handler" should be placed after the exported method "WithGroup" (funcorder)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+emaillog/handler.go:59:2: parameter name 'to' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+emaillog/handler.go:84:47: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+factory.go:49:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:233:49: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:234:6: variable name 'b' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:38:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:302:20: parameter name 'b' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:302:55: parameter name 'a' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:378:49: parameter name 'rc' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:411:40: parameter name 'wc' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:439:35: parameter name 'p' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers.go:453:2: variable name 'n' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+handlers_test.go:113:5: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+router.go:194:2: variable name 'ok' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+router.go:222:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/context.go:31:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/context.go:73:49: Magic number: 3, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/log_capture_test.go:43:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/middleware.go:33:31: parameter name 'w' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/middleware.go:33:54: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/middleware.go:56:3: variable name 'l' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/middleware.go:66:3: variable name 'rw' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/op_test.go:48:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/pgx.go:68:2: variable name 'l' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/setup.go:108:1: StartSpan returns interface (go.opentelemetry.io/otel/trace.Span) (ireturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/setup.go:113:9: span is unassigned, probable memory leak (spancheck)	# golangci-lint:first_added=2026-05-05T03:43:44Z last_seen=2026-11-10T09:54:17Z
+trace/setup.go:182:59: Magic number: 5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+trace/setup.go:94:1: Tracer returns interface (go.opentelemetry.io/otel/trace.Tracer) (ireturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+version/version.go:60:10: string `unknown` has 6 occurrences, make it a constant (goconst)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
+version/version.go:63:2: variable name 'f' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-10T09:54:17Z
 context.go:39:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T02:28:27Z last_seen=2026-11-09T02:28:27Z
 context.go:40:2: missing whitespace above this line (too many lines above return) (wsl_v5)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-09T02:28:27Z
 context_test.go:38:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T02:28:27Z last_seen=2026-11-09T02:28:27Z
@@ -68,72 +116,24 @@ trace/setup.go:170:2: missing whitespace above this line (no shared variables ab
 version/buildhash_test.go:18:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T02:28:27Z last_seen=2026-11-09T02:28:27Z
 version/version.go:91:2: missing whitespace above this line (too many lines above return) (wsl_v5)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-09T02:28:27Z
 version/version.go:90:2: missing whitespace below this line (after-block) (wsl_v5)	# golangci-lint:first_added=2026-11-09T02:28:27Z last_seen=2026-11-09T02:28:27Z
-correlation/correlation.go:309:14: use "X-Request-ID" instead of "X-Request-Id" (canonicalheader)	# golangci-lint:first_added=2026-11-08T23:04:25Z last_seen=2026-11-08T23:04:25Z
-correlation/header.go:6:1: godoc line is too long (78 > 77) (godoclint)	# golangci-lint:first_added=2026-11-08T23:03:37Z last_seen=2026-11-08T23:03:37Z
 context.go:40:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:93:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:156:32: Magic number: 4, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:217:5: break with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:357:2: variable name 'md' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:373:19: Magic number: 4, in <condition> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:447:61: Magic number: 16, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:392:26: Magic number: 8, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 correlation/correlation.go:397:8: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:398:40: Magic number: 2, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:403:19: parameter name 'md' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/correlation.go:443:61: Magic number: 32, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 correlation/handler.go:87:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/handler.go:90:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 correlation/handler_test.go:47:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/header.go:17:41: Magic number: 2, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 correlation/header.go:45:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/header.go:36:17: parameter name 'c' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-correlation/header.go:37:29: Magic number: 8, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-emaillog/handler.go:87:3: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 emaillog/handler.go:118:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-emaillog/handler.go:124:1: unexported method "now" for struct "Handler" should be placed after the exported method "WithGroup" (funcorder)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-emaillog/handler.go:53:2: parameter name 'to' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-emaillog/handler.go:77:47: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 emaillog/handler_test.go:29:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-factory.go:83:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:82:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:216:49: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 handlers.go:432:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:217:6: variable name 'b' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:279:20: parameter name 'b' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:279:55: parameter name 'a' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:344:49: parameter name 'rc' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:374:40: parameter name 'wc' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:399:35: parameter name 'p' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers.go:411:2: variable name 'n' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 handlers.go:60:1: The line is 128 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-handlers_test.go:163:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 locked_rotation.go:30:5: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 locked_rotation.go:43:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 locked_rotation_test.go:138:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 router.go:117:1: The line is 125 characters long, which exceeds the maximum of 120 characters. (lll)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-router.go:88:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-router.go:177:2: variable name 'ok' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 router_test.go:159:4: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/context.go:86:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/context.go:71:49: Magic number: 3, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/log_capture_test.go:74:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 trace/middleware.go:32:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/middleware.go:32:31: parameter name 'w' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/middleware.go:32:54: parameter name 'r' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/middleware.go:55:3: variable name 'l' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/middleware.go:63:3: variable name 'rw' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 trace/op.go:43:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/op_test.go:91:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 trace/pgx.go:87:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/pgx.go:60:2: variable name 'l' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/setup.go:103:1: StartSpan returns interface (go.opentelemetry.io/otel/trace.Span) (ireturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 trace/setup.go:95:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/setup.go:166:59: Magic number: 5, in <argument> detected (mnd)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 trace/setup.go:171:6: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/setup.go:90:1: Tracer returns interface (go.opentelemetry.io/otel/trace.Tracer) (ireturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 version/version.go:91:2: return with no blank line before (nlreturn)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-version/version.go:59:10: string `unknown` has 6 occurrences, make it a constant (goconst)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-version/version.go:61:2: variable name 'f' is too short for the scope of its usage (varnamelen)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
 version/version.go:67:8: avoid inline error handling using `if err := ...; err != nil`; use plain assignment `err := ...` (noinlineerr)	# golangci-lint:first_added=2026-11-08T23:03:25Z last_seen=2026-11-08T23:03:25Z
-trace/setup.go:103:9: span is unassigned, probable memory leak (spancheck)	# golangci-lint:first_added=2026-05-05T03:43:44Z last_seen=2026-05-05T15:29:35Z
