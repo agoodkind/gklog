@@ -68,18 +68,22 @@ func (c *handlerListCloser) Close() error {
 	if c.closed {
 		return nil
 	}
+
 	c.closed = true
 	var first error
+
 	for _, h := range c.handlers {
 		cl, ok := h.(io.Closer)
 		if !ok {
 			continue
 		}
+
 		closeErr := cl.Close()
 		if closeErr != nil && first == nil {
 			first = closeErr
 		}
 	}
+
 	return first
 }
 

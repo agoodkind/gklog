@@ -13,12 +13,15 @@ func TestNewWithEmptyHandlersReturnsLogger(t *testing.T) {
 	if log == nil {
 		t.Fatal("nil logger")
 	}
+
 	if closer == nil {
 		t.Fatal("nil closer")
 	}
+
 	if err := closer.Close(); err != nil {
 		t.Fatalf("close: %v", err)
 	}
+
 	// Calling Close twice must be a no-op.
 	if err := closer.Close(); err != nil {
 		t.Fatalf("close x2: %v", err)
@@ -50,6 +53,7 @@ func TestNewWithStdoutHandler(t *testing.T) {
 
 func TestParseLevel(t *testing.T) {
 	t.Parallel()
+
 	cases := map[string]slog.Level{
 		"":         slog.LevelWarn,
 		"debug":    slog.LevelDebug,
@@ -69,6 +73,7 @@ func TestParseLevel(t *testing.T) {
 			t.Errorf("ParseLevel(%q) = %v, want %v", in, got, want)
 		}
 	}
+
 	if ParseEmailMinLevel("ERROR") != slog.LevelError {
 		t.Fatal("ParseEmailMinLevel must alias ParseLevel")
 	}

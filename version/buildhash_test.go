@@ -13,9 +13,11 @@ func TestBuildHashReturnsRuntimeDigest(t *testing.T) {
 	if got == "unknown" {
 		t.Fatal("BuildHash returned \"unknown\" for the test binary; expected a runtime digest")
 	}
+
 	if len(got) != 12 {
 		t.Fatalf("BuildHash length = %d, want 12", len(got))
 	}
+
 	if _, err := hex.DecodeString(got); err != nil {
 		t.Fatalf("BuildHash %q is not hex: %v", got, err)
 	}

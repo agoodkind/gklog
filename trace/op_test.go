@@ -25,12 +25,15 @@ func TestOpEmitsDebugOnFastSuccess(t *testing.T) {
 	if !ok {
 		t.Fatal("expected fast.op record")
 	}
+
 	if record.level != slog.LevelDebug {
 		t.Fatalf("level = %v, want debug", record.level)
 	}
+
 	if got := record.attrs["status"].String(); got != "ok" {
 		t.Fatalf("status = %q, want ok", got)
 	}
+
 	if record.attrs["op"].String() != "fast.op" {
 		t.Fatalf("op = %q", record.attrs["op"].String())
 	}
@@ -49,12 +52,15 @@ func TestOpEmitsWarnOnFailure(t *testing.T) {
 	if !ok {
 		t.Fatal("expected failing.op record")
 	}
+
 	if record.level != slog.LevelWarn {
 		t.Fatalf("level = %v, want warn", record.level)
 	}
+
 	if got := record.attrs["status"].String(); got != "failed" {
 		t.Fatalf("status = %q, want failed", got)
 	}
+
 	if got := record.attrs["err"].String(); got != "boom" {
 		t.Fatalf("err = %q, want boom", got)
 	}
@@ -68,6 +74,7 @@ func TestOpEmitsWarnOnSlow(t *testing.T) {
 	_ = func() (err error) {
 		defer opWithClock(ctx, "slow.op", clock)(&err)
 		currentTime = currentTime.Add(SlowOpThreshold + time.Millisecond)
+
 		return nil
 	}()
 
@@ -75,9 +82,11 @@ func TestOpEmitsWarnOnSlow(t *testing.T) {
 	if !ok {
 		t.Fatal("expected slow.op record")
 	}
+
 	if record.level != slog.LevelWarn {
 		t.Fatalf("level = %v, want warn", record.level)
 	}
+
 	if got := record.attrs["status"].String(); got != "slow" {
 		t.Fatalf("status = %q, want slow", got)
 	}
@@ -88,5 +97,6 @@ func captureCtx(t *testing.T) (*captureHandler, context.Context) {
 	capture := newCaptureHandler()
 	logger := slog.New(capture)
 	ctx := gklog.WithLogger(context.Background(), logger)
+
 	return capture, ctx
 }

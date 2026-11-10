@@ -20,12 +20,14 @@ func (m *mockSender) Send(_ context.Context, to, subject, body string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.calls = append(m.calls, struct{ to, subject, body string }{to, subject, body})
+
 	return nil
 }
 
 func (m *mockSender) count() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
 	return len(m.calls)
 }
 
@@ -37,6 +39,7 @@ func TestHandleSuppressesBelowThreshold(t *testing.T) {
 	if err := h.Handle(context.Background(), r); err != nil {
 		t.Fatal(err)
 	}
+
 	if s.count() != 0 {
 		t.Fatalf("expected 0 emails, got %d", s.count())
 	}
@@ -50,15 +53,18 @@ func TestHandleSendsAtThreshold(t *testing.T) {
 	if err := h.Handle(context.Background(), r); err != nil {
 		t.Fatal(err)
 	}
+
 	if s.count() != 1 {
 		t.Fatalf("expected 1 email, got %d", s.count())
 	}
+
 	s.mu.Lock()
 	sub := s.calls[0].subject
 	s.mu.Unlock()
 	if !strings.HasPrefix(sub, "[gklog] ") {
 		t.Fatalf("unexpected subject prefix: %q", sub)
 	}
+
 	if !strings.Contains(sub, "WARN") || !strings.Contains(sub, "at threshold") {
 		t.Fatalf("unexpected subject: %q", sub)
 	}
@@ -112,6 +118,7 @@ func TestHandleSubjectNoPrefix(t *testing.T) {
 	if err := h.Handle(context.Background(), r); err != nil {
 		t.Fatal(err)
 	}
+
 	s.mu.Lock()
 	sub := s.calls[0].subject
 	s.mu.Unlock()

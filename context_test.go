@@ -15,6 +15,7 @@ func TestWithLoggerLoggerFromContextRoundTrip(t *testing.T) {
 	if got := LoggerFromContext(ctx); got != custom {
 		t.Fatalf("LoggerFromContext: want same pointer as stored, got %p want %p", got, custom)
 	}
+
 	if got := L(ctx); got != custom {
 		t.Fatalf("L: want same pointer as stored")
 	}
@@ -36,6 +37,7 @@ func TestWithLoggerNilLoggerReturnsCtxUnchanged(t *testing.T) {
 	if out != ctx {
 		t.Fatal("nil log: expected same context")
 	}
+
 	if LoggerFromContext(out) != slog.Default() {
 		t.Fatal("expected LoggerFromContext to fall back to default")
 	}
