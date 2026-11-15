@@ -4,6 +4,7 @@ package pyroscope
 import (
 	"context"
 	"errors"
+	"fmt"
 	"maps"
 	"net/url"
 	"strings"
@@ -19,12 +20,16 @@ import (
 )
 
 const (
-	sdkUploadWorkers = 5
-	sdkUploadTimeout = 30 * time.Second
+	sdkUploadWorkers   = 5
+	sdkUploadTimeout   = 30 * time.Second
+	sessionStopTimeout = 5 * time.Second
 )
 
 // ErrSessionActive reports a competing adapter session in this process.
 var ErrSessionActive = errors.New("pyroscope: another adapter session is active")
+
+// ErrCleanupPending reports an enable request before SDK cleanup finishes.
+var ErrCleanupPending = errors.New("pyroscope: session cleanup is pending")
 
 type configError struct{ message string }
 
@@ -59,6 +64,19 @@ type Backend struct {
 	session  *sdk.Session
 	uploader *remote.Remote
 	status   telemetry.BackendStatus
+	cleanup  *cleanupOperation
+	closing  bool
+}
+
+type cleanupOperation struct {
+	done chan struct{}
+	err  error
+}
+
+type cleanupPanicError struct{ message string }
+
+func (e *cleanupPanicError) Error() string {
+	return "pyroscope: SDK cleanup panicked; session ownership remains reserved: " + e.message
 }
 
 // New validates options and creates a disabled CPU profiling backend.
@@ -122,62 +140,43 @@ func New(config Options) (*Backend, error) {
 
 // SetEnabled starts or stops one CPU session unless the backend has closed.
 //
-// Enabled reports a local session, rather than remote upload receipt.
+// Disable waits at most five seconds or the caller's earlier deadline.
+// Cleanup continues after a timeout and rejects reenablement until it finishes.
 //
 // Example:
 //
 //	err := backend.SetEnabled(ctx, true)
 func (b *Backend) SetEnabled(ctx context.Context, enabled bool) error {
+	if enabled {
+		return b.enable(ctx)
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, sessionStopTimeout)
+	defer cancel()
+
 	b.mu.Lock()
-	defer b.mu.Unlock()
-	if b.status.Closed {
+	if b.status.Closed || b.closing {
+		b.mu.Unlock()
+
 		return telemetry.ErrClosed
 	}
 
 	if err := ctx.Err(); err != nil {
+		b.mu.Unlock()
+
 		return &operationError{operation: "update session", err: err}
 	}
 
-	if b.status.Enabled == enabled {
-		return nil
-	}
+	operation := b.beginCleanup()
+	b.mu.Unlock()
 
-	sessionOwner.Lock()
-	defer sessionOwner.Unlock()
-	if err := ctx.Err(); err != nil {
-		return &operationError{operation: "update session", err: err}
-	}
-
-	if !enabled {
-		b.stop()
-
-		return nil
-	}
-
-	if sessionOwner.backend != nil {
-		return ErrSessionActive
-	}
-
-	if b.session == nil {
-		if err := b.prepare(); err != nil {
-			return err
-		}
-	}
-
-	if err := b.session.Start(); err != nil {
-		return &operationError{operation: "start session", err: err}
-	}
-
-	b.uploader.Start()
-	sessionOwner.backend = b
-	b.status.Enabled = true
-
-	return nil
+	return waitForCleanup(ctx, operation)
 }
 
 // Status returns the local session state and backend lifecycle.
 //
-// Status serializes with session startup and shutdown.
+// Status remains available while SDK cleanup waits for a foreground profile.
+// Enabled reports local SDK session state, rather than remote upload receipt.
 //
 // Example:
 //
@@ -189,21 +188,77 @@ func (b *Backend) Status() telemetry.BackendStatus {
 	return b.status
 }
 
-// Close stops the CPU session and rejects future updates.
+// Close rejects updates and waits at most five seconds for SDK cleanup.
 //
-// The SDK does not guarantee delivery of pending uploads during shutdown.
+// A timed-out Close leaves cleanup running and permits a later Close retry.
+// SDK shutdown does not guarantee delivery of pending uploads.
 //
 // Example:
 //
 //	err := backend.Close()
 func (b *Backend) Close() error {
+	ctx, cancel := context.WithTimeout(context.Background(), sessionStopTimeout)
+	defer cancel()
+
+	b.mu.Lock()
+	b.closing = true
+	operation := b.beginCleanup()
+	b.mu.Unlock()
+
+	return waitForCleanup(ctx, operation)
+}
+
+func (b *Backend) enable(ctx context.Context) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if b.status.Closed || b.closing {
+		return telemetry.ErrClosed
+	}
+
+	if err := ctx.Err(); err != nil {
+		return &operationError{operation: "update session", err: err}
+	}
+
+	if b.cleanup != nil {
+		return ErrCleanupPending
+	}
+
+	if b.status.Enabled {
+		return nil
+	}
+
 	sessionOwner.Lock()
-	defer sessionOwner.Unlock()
-	b.stop()
-	b.session, b.uploader = nil, nil
-	b.status.Closed = true
+	if sessionOwner.backend != nil {
+		sessionOwner.Unlock()
+
+		return ErrSessionActive
+	}
+
+	sessionOwner.backend = b
+	sessionOwner.Unlock()
+
+	if b.session == nil {
+		if err := b.prepare(); err != nil {
+			b.releaseOwnership()
+
+			return err
+		}
+	}
+
+	if err := ctx.Err(); err != nil {
+		b.releaseOwnership()
+
+		return &operationError{operation: "start session", err: err}
+	}
+
+	if err := b.session.Start(); err != nil {
+		b.releaseOwnership()
+
+		return &operationError{operation: "start session", err: err}
+	}
+
+	b.uploader.Start()
+	b.status.Enabled = true
 
 	return nil
 }
@@ -240,16 +295,78 @@ func (b *Backend) prepare() error {
 	return nil
 }
 
-func (b *Backend) stop() {
-	if !b.status.Enabled {
-		return
+func (b *Backend) beginCleanup() *cleanupOperation {
+	if b.cleanup != nil {
+		return b.cleanup
 	}
 
-	b.session.Stop()
-	b.uploader.Stop()
-	b.session, b.uploader = nil, nil
+	if !b.status.Enabled {
+		if b.closing {
+			b.session, b.uploader = nil, nil
+			b.status.Closed = true
+		}
+
+		return nil
+	}
+
+	operation := &cleanupOperation{done: make(chan struct{})}
+	b.cleanup = operation
+	session, uploader := b.session, b.uploader
+	go func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				operation.err = &cleanupPanicError{message: fmt.Sprint(recovered)}
+				close(operation.done)
+			}
+		}()
+		b.finishCleanup(operation, session, uploader)
+	}()
+
+	return operation
+}
+
+func (b *Backend) finishCleanup(
+	operation *cleanupOperation,
+	session *sdk.Session,
+	uploader *remote.Remote,
+) {
+	session.Stop()
+	b.mu.Lock()
 	b.status.Enabled = false
+	b.mu.Unlock()
+
+	uploader.Stop()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.session, b.uploader = nil, nil
+	b.status.Closed = b.closing
+	b.cleanup = nil
+	b.releaseOwnership()
+	close(operation.done)
+}
+
+func (b *Backend) releaseOwnership() {
+	sessionOwner.Lock()
+	defer sessionOwner.Unlock()
 	sessionOwner.backend = nil
+}
+
+func waitForCleanup(ctx context.Context, operation *cleanupOperation) error {
+	if operation == nil {
+		return nil
+	}
+
+	select {
+	case <-operation.done:
+		return operation.err
+	case <-ctx.Done():
+		select {
+		case <-operation.done:
+			return operation.err
+		default:
+			return &operationError{operation: "wait for session cleanup", err: ctx.Err()}
+		}
+	}
 }
 
 // TracerProvider adds the SDK's default local root profile labels to spans.
