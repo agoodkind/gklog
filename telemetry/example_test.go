@@ -82,7 +82,11 @@ func serveWithTelemetry(profileBackend, metricBackend telemetry.Backend) (result
 	}
 
 	if profileBackend != nil {
-		defer func() { result = errors.Join(result, profileBackend.Close()) }()
+		defer func() {
+			if !profileBackend.Status().Closed {
+				result = errors.Join(result, profileBackend.Close())
+			}
+		}()
 	}
 
 	if metricBackend == nil && metricEndpoint != "" {
@@ -106,7 +110,11 @@ func serveWithTelemetry(profileBackend, metricBackend telemetry.Backend) (result
 	}
 
 	if metricBackend != nil {
-		defer func() { result = errors.Join(result, metricBackend.Close()) }()
+		defer func() {
+			if !metricBackend.Status().Closed {
+				result = errors.Join(result, metricBackend.Close())
+			}
+		}()
 	}
 
 	logs, err := telemetry.NewLogControl(logSettings)
