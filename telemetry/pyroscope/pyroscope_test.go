@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"runtime/pprof"
@@ -364,5 +365,113 @@ func TestTracerProviderPreservesLocalRootLabels(t *testing.T) {
 		if actual, ok := pprof.Label(childContext, key); !ok || actual != expected {
 			t.Errorf("child label %s = %q, want %q", key, actual, expected)
 		}
+	}
+}
+
+func TestProfileSuppliedClientUploadDeadline(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		sendHeaders bool
+		close       bool
+	}{
+		{name: "disable before response"},
+		{name: "close during response body", sendHeaders: true, close: true},
+	} {
+		t.Run(
+			test.name,
+			func(t *testing.T) {
+				entered := make(chan struct{}, 8)
+				canceled := make(chan struct{}, 8)
+				release := make(chan struct{})
+				server := httptest.NewTLSServer(
+					http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
+						if _, err := io.Copy(io.Discard, request.Body); err != nil {
+							t.Error(err)
+
+							return
+						}
+
+						if test.sendHeaders {
+							response.Header().Set("Content-Length", "128")
+							response.WriteHeader(http.StatusOK)
+							if err := http.NewResponseController(response).Flush(); err != nil {
+								t.Error(err)
+
+								return
+							}
+						}
+
+						entered <- struct{}{}
+						select {
+						case <-request.Context().Done():
+							canceled <- struct{}{}
+						case <-release:
+						}
+					}),
+				)
+				t.Cleanup(server.Close)
+				client := server.Client()
+				if client.Timeout != 0 {
+					t.Fatalf("supplied client timeout = %s, want zero", client.Timeout)
+				}
+
+				backend := newProfileBackend(
+					t,
+					pyroscope.Options{
+						ApplicationName: "upload-deadline",
+						UploadRate:      100 * time.Millisecond,
+						Remote: remote.Config{
+							Address:    server.URL,
+							HTTPClient: client,
+							Threads:    1,
+							Timeout:    500 * time.Millisecond,
+						},
+					},
+				)
+				t.Cleanup(func() { close(release) })
+				if err := backend.SetEnabled(t.Context(), true); err != nil {
+					t.Fatal(err)
+				}
+
+				select {
+				case <-entered:
+				case <-time.After(5 * time.Second):
+					t.Fatal("receiver did not accept a profile upload")
+				}
+
+				finished := make(chan error, 1)
+				go func() {
+					if test.close {
+						finished <- backend.Close()
+
+						return
+					}
+
+					finished <- backend.SetEnabled(t.Context(), false)
+				}()
+				select {
+				case err := <-finished:
+					if err != nil {
+						t.Fatal(err)
+					}
+				case <-time.After(3 * time.Second):
+					t.Fatal("profiling cleanup exceeded the upload deadline")
+				}
+
+				select {
+				case <-canceled:
+				case <-time.After(time.Second):
+					t.Fatal("upload deadline did not cancel the receiver request")
+				}
+
+				if state := backend.Status(); state.Enabled || state.Closed != test.close {
+					t.Fatalf("cleanup status = %+v", state)
+				}
+
+				if client.Timeout != 0 {
+					t.Fatalf("adapter changed supplied client timeout to %s", client.Timeout)
+				}
+			},
+		)
 	}
 }

@@ -210,6 +210,13 @@ func (b *Backend) Close() error {
 
 func (b *Backend) prepare() error {
 	config := b.config
+	if config.Remote.HTTPClient != nil {
+		config.Remote.HTTPClient = &deadlineClient{
+			next:    config.Remote.HTTPClient,
+			timeout: config.Remote.Timeout,
+		}
+	}
+
 	// Construct SDK components directly because sdk.Start rereads an endpoint environment variable.
 	uploader, err := remote.NewRemote(config.Remote)
 	if err != nil {
