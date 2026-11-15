@@ -326,8 +326,10 @@ func TestProfileConcurrentUpdatesStatusAndCancellation(t *testing.T) {
 	for range 4 {
 		workers.Go(func() {
 			for index := range 4 {
-				if err := backend.SetEnabled(t.Context(), index%2 == 0); err != nil &&
-					!errors.Is(err, telemetry.ErrClosed) {
+				enabled := index%2 == 0
+				if err := backend.SetEnabled(t.Context(), enabled); err != nil &&
+					!errors.Is(err, telemetry.ErrClosed) &&
+					!(enabled && errors.Is(err, pyroscope.ErrCleanupPending)) {
 					t.Error(err)
 				}
 
@@ -342,6 +344,9 @@ func TestProfileConcurrentUpdatesStatusAndCancellation(t *testing.T) {
 		}
 	})
 	workers.Wait()
+	if status := backend.Status(); status.Enabled || !status.Closed {
+		t.Fatalf("completed concurrent cleanup status = %+v", status)
+	}
 }
 
 func TestTracerProviderPreservesLocalRootLabels(t *testing.T) {
