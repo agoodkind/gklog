@@ -111,13 +111,16 @@ func TestBackendControlsWithoutBackends(t *testing.T) {
 func newMetricControlBackend(t *testing.T) *otlpmetrics.Backend {
 	t.Helper()
 	endpoint, _, _ := correlationCollector(t)
-	backend, err := otlpmetrics.New(t.Context(), otlpmetrics.Options{
-		ExporterOptions: []otlpmetricgrpc.Option{
-			otlpmetricgrpc.WithEndpoint(endpoint),
-			otlpmetricgrpc.WithInsecure(),
+	backend, err := otlpmetrics.New(
+		t.Context(),
+		otlpmetrics.Options{
+			ExporterOptions: []otlpmetricgrpc.Option{
+				otlpmetricgrpc.WithEndpoint(endpoint),
+				otlpmetricgrpc.WithInsecure(),
+			},
+			ReaderOptions: []sdkmetric.PeriodicReaderOption{sdkmetric.WithInterval(time.Hour)},
 		},
-		ReaderOptions: []sdkmetric.PeriodicReaderOption{sdkmetric.WithInterval(time.Hour)},
-	})
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,13 +219,11 @@ func TestMetricControlConcurrentUpdateStatusAndClose(t *testing.T) {
 	}
 
 	var workers sync.WaitGroup
+
 	for range 4 {
 		workers.Go(func() {
 			for index := range 100 {
-				if err := control.Update(
-					t.Context(),
-					index%2 == 0,
-				); err != nil &&
+				if err := control.Update(t.Context(), index%2 == 0); err != nil &&
 					!errors.Is(err, telemetry.ErrClosed) {
 					t.Error(err)
 				}

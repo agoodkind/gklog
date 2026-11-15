@@ -31,7 +31,8 @@ func Example() {
 
 // requestWithTelemetry requires a meter provider for a replacement metric backend.
 func requestWithTelemetry(
-	profileBackend, metricBackend telemetry.Backend,
+	profileBackend telemetry.Backend,
+	metricBackend telemetry.Backend,
 	meterProvider otelmetric.MeterProvider,
 ) (result error) {
 	if metricBackend != nil && meterProvider == nil {
@@ -187,11 +188,13 @@ func requestWithTelemetry(
 		return err
 	}
 
-	handler := gktrace.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		gklog.L(r.Context()).DebugContext(r.Context(), "handler.work")
-		counter.Add(r.Context(), 1)
-		w.WriteHeader(http.StatusNoContent)
-	}))
+	handler := gktrace.RequestLogger(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			gklog.L(r.Context()).DebugContext(r.Context(), "handler.work")
+			counter.Add(r.Context(), 1)
+			w.WriteHeader(http.StatusNoContent)
+		}),
+	)
 	response := httptest.NewRecorder()
 	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/work", nil))
 
