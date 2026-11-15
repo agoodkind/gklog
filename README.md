@@ -14,7 +14,7 @@ Downstream should prefer `LoggerFromContext(ctx).InfoContext(ctx, msg, ...)` so 
 
 ## Runtime telemetry
 
-`telemetry` controls diagnostic logging, root trace sampling, CPU profiling, and metric export independently. The [composition example](telemetry/example_test.go) reads each control's environment settings once at startup and accepts optional `telemetry.Backend` replacements for the Pyroscope and OTLP metric adapters. Backend endpoints and credentials remain startup configuration.
+`telemetry` controls diagnostic logging, root trace sampling, CPU profiling, and metric export independently. The [composition example](telemetry/example_test.go) reads each control's environment settings once at startup and accepts optional `telemetry.Backend` replacements for the Pyroscope and OTLP metric adapters. A replacement metric backend requires its corresponding `metric.MeterProvider`; the request counter uses that provider. The example runs one HTTP operation and returns through deferred cleanup. Backend endpoints and credentials remain startup configuration.
 
 Set `OTEL_SERVICE_NAME` and include `service.instance.id` in `OTEL_RESOURCE_ATTRIBUTES` before startup. The example uses `resource.Default()` to share these values across log fields, trace and metric resources, and profile tags. The Pyroscope tracer provider wrapper adds local root trace and span IDs to CPU samples and adds `pyroscope.profile.id` to the corresponding span. Request logs and metric exemplars use the request context.
 

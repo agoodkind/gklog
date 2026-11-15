@@ -5,13 +5,14 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"net/http/httptest"
 	"os"
-	"time"
 
 	sdkprofile "github.com/grafana/pyroscope-go"
 	"github.com/grafana/pyroscope-go/upstream/remote"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	otelmetric "go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	oteltrace "go.opentelemetry.io/otel/trace"
 
@@ -23,13 +24,20 @@ import (
 )
 
 func Example() {
-	if err := serveWithTelemetry(nil, nil); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := requestWithTelemetry(nil, nil, nil); err != nil {
 		panic(err)
 	}
 }
 
-// serveWithTelemetry accepts optional application backends instead of the SDK adapters.
-func serveWithTelemetry(profileBackend, metricBackend telemetry.Backend) (result error) {
+// requestWithTelemetry requires a meter provider for a replacement metric backend.
+func requestWithTelemetry(
+	profileBackend, metricBackend telemetry.Backend,
+	meterProvider otelmetric.MeterProvider,
+) (result error) {
+	if metricBackend != nil && meterProvider == nil {
+		return errors.New("supply the replacement metric backend's meter provider")
+	}
+
 	ctx := context.Background()
 	logSettings, err := telemetry.LogSettingsFromEnv()
 	if err != nil {
@@ -104,9 +112,11 @@ func serveWithTelemetry(profileBackend, metricBackend telemetry.Backend) (result
 		}
 
 		metricBackend = backend
-		previousMeter := otel.GetMeterProvider()
-		otel.SetMeterProvider(backend.MeterProvider())
-		defer otel.SetMeterProvider(previousMeter)
+		meterProvider = backend.MeterProvider()
+	}
+
+	if meterProvider == nil {
+		meterProvider = otel.GetMeterProvider()
 	}
 
 	if metricBackend != nil {
@@ -172,22 +182,18 @@ func serveWithTelemetry(profileBackend, metricBackend telemetry.Backend) (result
 		slog.String("service.instance.id", instance.AsString()),
 	)
 	audit.InfoContext(ctx, "service.start")
-	counter, err := otel.Meter("example").Int64Counter("requests")
+	counter, err := meterProvider.Meter("example").Int64Counter("requests")
 	if err != nil {
 		return err
 	}
 
-	server := &http.Server{
-		Addr:              ":8080",
-		ReadHeaderTimeout: 5 * time.Second,
-		Handler: gktrace.RequestLogger(
-			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				gklog.L(r.Context()).DebugContext(r.Context(), "handler.work")
-				counter.Add(r.Context(), 1)
-				w.WriteHeader(http.StatusNoContent)
-			}),
-		),
-	}
+	handler := gktrace.RequestLogger(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gklog.L(r.Context()).DebugContext(r.Context(), "handler.work")
+		counter.Add(r.Context(), 1)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	response := httptest.NewRecorder()
+	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/work", nil))
 
-	return server.ListenAndServe()
+	return nil
 }
