@@ -43,6 +43,11 @@ type Options struct {
 	// are still produced (so trace_id / span_id flow into logs) but
 	// nothing is shipped off-process.
 	Endpoint string
+	// Sampler overrides the SDK sampling policy when supplied.
+	Sampler sdktrace.Sampler
+	// WrapTracerProvider wraps the SDK provider before global installation.
+	// The returned closer always shuts down the original SDK provider.
+	WrapTracerProvider func(trace.TracerProvider) trace.TracerProvider
 }
 
 // Setup installs a TracerProvider and the W3C TraceContext + Baggage
@@ -68,6 +73,9 @@ func Setup(opts Options) (io.Closer, error) {
 	providerOptions := []sdktrace.TracerProviderOption{
 		sdktrace.WithResource(resourceAttrs),
 	}
+	if opts.Sampler != nil {
+		providerOptions = append(providerOptions, sdktrace.WithSampler(opts.Sampler))
+	}
 
 	if endpoint := strings.TrimSpace(opts.Endpoint); endpoint != "" {
 		exporter, err := newTraceExporter(endpoint)
@@ -79,7 +87,23 @@ func Setup(opts Options) (io.Closer, error) {
 	}
 
 	provider := sdktrace.NewTracerProvider(providerOptions...)
-	otel.SetTracerProvider(provider)
+	var installedProvider trace.TracerProvider = provider
+	if opts.WrapTracerProvider != nil {
+		installedProvider = opts.WrapTracerProvider(provider)
+		if installedProvider == nil {
+			closer := traceCloser{shutdowns: []func(context.Context) error{provider.Shutdown}}
+			if err := closer.Close(); err != nil {
+				return nil, &otelSetupError{
+					op:  "wrapper returned nil provider; shutdown failed",
+					err: err,
+				}
+			}
+
+			return nil, &nilProviderError{}
+		}
+	}
+
+	otel.SetTracerProvider(installedProvider)
 	otel.SetTextMapPropagator(
 		propagation.NewCompositeTextMapPropagator(
 			propagation.TraceContext{},
@@ -88,6 +112,12 @@ func Setup(opts Options) (io.Closer, error) {
 	)
 
 	return traceCloser{shutdowns: []func(context.Context) error{provider.Shutdown}}, nil
+}
+
+type nilProviderError struct{}
+
+func (*nilProviderError) Error() string {
+	return "trace: wrapper returned nil tracer provider"
 }
 
 // Tracer returns the OTel tracer for the active instrumentation name.

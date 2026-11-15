@@ -12,6 +12,14 @@ Store a request scoped `*slog.Logger` on `context.Context` so middleware can att
 
 Downstream should prefer `LoggerFromContext(ctx).InfoContext(ctx, msg, ...)` so the record carries the same `context` through `slog` handlers.
 
+## Runtime telemetry
+
+`telemetry` controls diagnostic logging, root trace sampling, CPU profiling, and metric export independently. The [composition example](telemetry/example_test.go) reads each control's environment settings once at startup and accepts optional `telemetry.Backend` replacements for the Pyroscope and OTLP metric adapters. A replacement metric backend requires its corresponding `metric.MeterProvider`; the request counter uses that provider. The example runs one HTTP operation and returns through deferred cleanup. Backend endpoints and credentials remain startup configuration.
+
+Set `OTEL_SERVICE_NAME` and include `service.instance.id` in `OTEL_RESOURCE_ATTRIBUTES` before startup. The example uses `resource.Default()` to share these values across log fields, trace and metric resources, and profile tags. The Pyroscope tracer provider wrapper adds local root trace and span IDs to CPU samples and adds `pyroscope.profile.id` to the corresponding span. Request logs and metric exemplars use the request context.
+
+An application's authenticated administration interface can call each control's `Update` method, check its returned error, and read `Status` for the resulting state. The package does not provide an administration interface. Runtime updates do not reread environment variables. Inner diagnostic handlers must permit DEBUG records when runtime settings permit DEBUG. Independent sink thresholds still apply. Required audit output must use handlers outside the diagnostic wrapper.
+
 ## Build metadata
 
 Consumers must provide valid gklog build metadata through their normal build pipeline. Builds that do not provide valid metadata should fail before application startup.
