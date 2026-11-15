@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 )
 
 // ErrClosed reports an update after a control has closed.
@@ -148,16 +149,16 @@ func (c *MetricControl) Close() error {
 }
 
 type backendControl struct {
-	mu      sync.Mutex
-	backend Backend
-	closed  bool
+	operations sync.Mutex
+	backend    Backend
+	closed     atomic.Bool
 }
 
 func (c *backendControl) update(ctx context.Context, enabled bool) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.operations.Lock()
+	defer c.operations.Unlock()
 
-	if c.closed {
+	if c.closed.Load() {
 		return ErrClosed
 	}
 
@@ -177,21 +178,20 @@ func (c *backendControl) update(ctx context.Context, enabled bool) error {
 }
 
 func (c *backendControl) status() BackendControlStatus {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	status := BackendControlStatus{Available: c.backend != nil, Closed: c.closed}
+	status := BackendControlStatus{Available: c.backend != nil}
 	if c.backend != nil {
 		status.Backend = c.backend.Status()
 	}
+
+	status.Closed = c.closed.Load()
 
 	return status
 }
 
 func (c *backendControl) close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.closed = true
+	c.operations.Lock()
+	defer c.operations.Unlock()
+	c.closed.Store(true)
 
 	if c.backend == nil || c.backend.Status().Closed {
 		return nil
